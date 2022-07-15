@@ -1,0 +1,10 @@
+{
+    "robloxLsp.diagnostics.globals": [
+        "Vehicle_Importer",
+        "setclipboard",
+        "iuaghsf"
+    ],
+    "robloxLsp.diagnostics.disable": [
+        "undefined-global"
+    ]
+}
