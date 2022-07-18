@@ -1,10 +1,14 @@
 {
     "robloxLsp.diagnostics.globals": [
-        "Vehicle_Importer",
         "setclipboard",
-        "iuaghsf"
-    ],
-    "robloxLsp.diagnostics.disable": [
-        "undefined-global"
+        "iuaghsf",
+        "writefile",
+        "listfiles",
+        "EndInput",
+        "getgenv",
+        "import",
+        "Vehicle_Importer",
+        "readfile",
+        "firesignal"
     ]
 }

@@ -2,7 +2,10 @@ local Themes = import("Ui/Themes.lua")
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
+local Players = game:GetService("Players")
+
+local Mouse = Players.LocalPlayer:GetMouse()
+
 local Library = {
     Tabs = {},
     LayoutOrder = 0
@@ -1114,7 +1117,7 @@ Library.CreateGui = function(self, UiName)
             ListFunctions.GetListData = function()
                 return ListFunctions.StoredData, ListFunctions.Lists, ListFunctions.ListData
             end
-            
+
             ListFunctions.CreateListAtribute = function(self, data)
                 local List = Instance.new("Frame")
                 List.Name = "List"
@@ -1122,17 +1125,17 @@ Library.CreateGui = function(self, UiName)
                 List.BackgroundTransparency = 1
                 List.BackgroundColor3 = Themes.FindColor(255, 255, 255)
                 List.Parent = ListSection
-                
+
                 local List_UIStroke = Instance.new("UIStroke")
                 List_UIStroke.Name = "List_UIStroke"
                 List_UIStroke.Color = Color3.fromRGB(50, 50, 50)
                 List_UIStroke.Parent = List
-                
+
                 local List_UICorner = Instance.new("UICorner")
                 List_UICorner.Name = "List_UICorner"
                 List_UICorner.CornerRadius = UDim.new(0, 6)
                 List_UICorner.Parent = List
-                
+
                 local List_TextButton = Instance.new("TextButton")
                 List_TextButton.Name = "List_TextButton"
                 List_TextButton.Size = UDim2.new(0, 317, 0, 23)
