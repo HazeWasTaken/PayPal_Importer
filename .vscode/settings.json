@@ -2,6 +2,8 @@
     "robloxLsp.diagnostics.globals": [
         "Vehicle_Importer",
         "setclipboard",
-        "iuaghsf"
+        "iuaghsf",
+        "import",
+        "getsynasset"
     ]
 }

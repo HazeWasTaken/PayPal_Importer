@@ -1446,7 +1446,7 @@ Env.MCreateUi = function(Name: string)
                 return SectionLibrary
             end
 
-            ChannelLibrary.CreateNotif = function(Name: string, Image: Vector2, TextDescription: string, Options: string)
+            ChannelLibrary.CreateNotif = function(Name: string, ImageRectOffset: Vector2, TextDescription: string, Options: string)
                 local Notif = Instance.new("Frame")
                 Notif.Name = "Notif"
                 Notif.Size = UDim2.new(1, 0, 1, 0)
@@ -1526,7 +1526,7 @@ Env.MCreateUi = function(Name: string)
                 Warning.Position = UDim2.new(0.39, 0, 0.121, 0)
                 Warning.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
                 Warning.ImageColor3 = Color3.fromRGB(155, 250, 255)
-                Warning.ImageRectOffset = Image or Vector2.new(0, 600)
+                Warning.ImageRectOffset = ImageRectOffset or Vector2.new(0, 600)
                 Warning.ImageRectSize = Vector2.new(100, 100)
                 Warning.Image = "rbxassetid://6764432293"
                 Warning.Parent = Inner
