@@ -46,13 +46,13 @@ local MMeta = {
 setmetatable(VehicleChecks.Functions, LMeta)
 setmetatable(VehicleChecks.Module.Functions, MMeta)
 
-Env.MRunCheck = function(Id: number)
+Env.MRunCheck = function(Data: number | string)
 	local Success: boolean, Response: Instance | string = pcall(function()
-		return game:GetObjects("rbxassetid://" .. Id)[1]
+		return game:GetObjects(syn and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
 	end)
 
-	if not Success then
-		return Response
+	if not Success or not Response then
+		return (Response or "Failed to load model"), Vector2.new(0, 600)
 	end
 
 	local Output = {}
@@ -71,7 +71,7 @@ Env.MRunCheck = function(Id: number)
 		end
 	end
 
-	return String:len() > 0 and String or "Model is valid"
+	return ((String:len() > 0 and String) or "Model is valid"), Vector2.new(300, 300)
 end
 
 return VehicleChecks.Module

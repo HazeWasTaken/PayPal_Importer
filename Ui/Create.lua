@@ -1,5 +1,6 @@
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
+local Importer = import("Modules/Importer/Importer.lua")
 
 local CreateUi, Env = {
 	Module = {
@@ -26,14 +27,15 @@ setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
 
 Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
-	local TextBox = Section.CreateTextBox(function(Number)
-		local Output = VehicleChecks.Functions.RunCheck(Number)
-		local Notif = Category.CreateNotif("Model Check", nil, Output, {
+	local TextBox = Section.CreateTextBox(function(Data: string | number)
+		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
+
+		local Notif = Category.CreateNotif("Model Check", Offset, Output, {
 			{
 				Text = "Continue",
 				Close = true,
 				Callback = function()
-					print("Config")
+					Importer.Functions.CreateNewSave(Data)
 				end
 			},
 			{
@@ -42,7 +44,7 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 				Callback = function() end
 			}
 		})
-	end, {Name = "Model Id", Text = "", NumOnly = true})
+	end, {Name = "Model " .. (syn and "File Name" or "Id"), Text = (syn and "File Name" or "Id"), NumOnly = not syn})
 
 	return TextBox
 end

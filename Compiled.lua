@@ -47,13 +47,13 @@ local MMeta = {
 setmetatable(VehicleChecks.Functions, LMeta)
 setmetatable(VehicleChecks.Module.Functions, MMeta)
 
-Env.MRunCheck = function(Id: number)
+Env.MRunCheck = function(Data: number | string)
 	local Success: boolean, Response: Instance | string = pcall(function()
-		return game:GetObjects("rbxassetid://" .. Id)[1]
+		return game:GetObjects(syn and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
 	end)
 
-	if not Success then
-		return Response
+	if not Success or not Response then
+		return (Response or "Failed to load model"), Vector2.new(0, 600)
 	end
 
 	local Output = {}
@@ -72,13 +72,14 @@ Env.MRunCheck = function(Id: number)
 		end
 	end
 
-	return String:len() > 0 and String or "Model is valid"
+	return ((String:len() > 0 and String) or "Model is valid"), Vector2.new(300, 300)
 end
 
 return VehicleChecks.Module
 end,
 ['Modules/Importer/Importer.lua'] = function()
 local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Importer, Env = {
@@ -109,20 +110,9 @@ local MMeta = {
 setmetatable(Importer.Functions, LMeta)
 setmetatable(Importer.Module.Functions, MMeta)
 
-Env.LoadSaves = function(List)
-    
-end
 
-Env.CreateNewSave = function(Name)
-    
-end
-
-Env.UpdateSaveId = function(Id: string, SaveIndex: number)
-    
-end
-
-Env.UpdateModel = function(SaveIndex: number)
-    
+Env.MCreateNewSave = function(Data: string | number)
+    print(syn and Data or MarketplaceService:GetProductInfo(Data))
 end
 
 Env.LoadModel = function(Id: string)
@@ -131,7 +121,7 @@ Env.LoadModel = function(Id: string)
     return Model
 end
 
-return Importer
+return Importer.Module
 end,
 ['Modules/Ui/Library.lua'] = function()
 local TweenService = game:GetService("TweenService")
@@ -1743,6 +1733,7 @@ end,
 ['Ui/Create.lua'] = function()
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
+local Importer = import("Modules/Importer/Importer.lua")
 
 local CreateUi, Env = {
 	Module = {
@@ -1769,14 +1760,15 @@ setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
 
 Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
-	local TextBox = Section.CreateTextBox(function(Number)
-		local Output = VehicleChecks.Functions.RunCheck(Number)
-		local Notif = Category.CreateNotif("Model Check", nil, Output, {
+	local TextBox = Section.CreateTextBox(function(Data: string | number)
+		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
+
+		local Notif = Category.CreateNotif("Model Check", Offset, Output, {
 			{
 				Text = "Continue",
 				Close = true,
 				Callback = function()
-					print("Config")
+					Importer.Functions.CreateNewSave(Data)
 				end
 			},
 			{
@@ -1785,7 +1777,7 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 				Callback = function() end
 			}
 		})
-	end, {Name = "Model Id", Text = "", NumOnly = true})
+	end, {Name = "Model " .. (syn and "File Name" or "Id"), Text = (syn and "File Name" or "Id"), NumOnly = not syn})
 
 	return TextBox
 end

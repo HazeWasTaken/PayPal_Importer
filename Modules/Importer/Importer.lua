@@ -1,4 +1,5 @@
 local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Importer, Env = {
@@ -29,20 +30,9 @@ local MMeta = {
 setmetatable(Importer.Functions, LMeta)
 setmetatable(Importer.Module.Functions, MMeta)
 
-Env.LoadSaves = function(List)
-    
-end
 
-Env.CreateNewSave = function(Name)
-    
-end
-
-Env.UpdateSaveId = function(Id: string, SaveIndex: number)
-    
-end
-
-Env.UpdateModel = function(SaveIndex: number)
-    
+Env.MCreateNewSave = function(Data: string | number)
+    print(syn and Data or MarketplaceService:GetProductInfo(Data))
 end
 
 Env.LoadModel = function(Id: string)
@@ -51,4 +41,4 @@ Env.LoadModel = function(Id: string)
     return Model
 end
 
-return Importer
+return Importer.Module

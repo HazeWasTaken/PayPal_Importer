@@ -4,6 +4,7 @@
         "setclipboard",
         "iuaghsf",
         "import",
-        "getsynasset"
+        "getsynasset",
+        "syn"
     ]
 }
