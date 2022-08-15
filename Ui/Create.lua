@@ -1,4 +1,5 @@
 local Library = import("Modules/Ui/Library.lua")
+local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
 
 local CreateUi, Env = {
 	Module = {
@@ -24,7 +25,27 @@ local MMeta = {
 setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
 
--- Env.Create
+Env.CreateIdTextBox = function(Channel: table, Section: table) -- Id TextBox
+	local TextBox = Section.CreateTextBox(function(Number)
+		local Output = VehicleChecks.RunCheck(Number)
+		local Notif = Channel.CreateNotif("Model Check", nil, Output, {
+			{
+				Text = "Create Config",
+				Close = true,
+				Callback = function() 
+					print("Config")
+				end
+			},
+			{
+				Text = "Cancel",
+				Close = true,
+				Callback = function() end
+			}
+		})
+	end, {Name = "Model Id", Text = "", NumOnly = true})
+
+	return TextBox
+end
 
 Env.CreateNewConfigSection = function(Channel: table) -- New Config Section
 	local Section = Channel.CreateSection("New Config")
@@ -38,13 +59,13 @@ Env.CreateImportChannel = function(Category: table) -- Importer Channel
 	return CreateChannel
 end
 
-Env.CreateModsChannel = function(Category: table)
+Env.CreateModsChannel = function(Category: table) -- Modifications Channel
 	local CreateChannel = Category.CreateChannel("Modifications")
 
 	return CreateChannel
 end
 
-Env.CreateImportCategory = function(Guild: table)
+Env.CreateImportCategory = function(Guild: table) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
@@ -53,13 +74,13 @@ Env.CreateImportCategory = function(Guild: table)
 	return Category
 end
 
-Env.CreatePacketChannel = function(Category: table)
+Env.CreatePacketChannel = function(Category: table) -- Packet Channel
 	local CreateChannel = Category.CreateChannel("Packet")
 
 	return CreateChannel
 end
 
-Env.CreateVehcileCategory = function(Guild: table)
+Env.CreateVehcileCategory = function(Guild: table) -- Vehicle Category
 	local Category = Guild.CreateCategory("Vehicle")
 
 	CreateUi.Functions.CreatePacketChannel(Category)
@@ -67,7 +88,7 @@ Env.CreateVehcileCategory = function(Guild: table)
 	return Category
 end
 
-Env.CreateImporterGuild = function(Ui: table)
+Env.CreateImporterGuild = function(Ui: table) -- Importer Guild
 	local Guild = Ui.CreateGuild("Importer", getsynasset("jailbreak.png"), getsynasset("badimo.webm"))
 
 	CreateUi.Functions.CreateImportCategory(Guild)
@@ -77,7 +98,7 @@ Env.CreateImporterGuild = function(Ui: table)
 end
 
 Env.MCreateUi = function()
-	local Ui = Library.Functions.CreateUi("Importer")
+	local Ui = Library.Functions.CreateUi("Importer") -- mporter Ui
 
 	CreateUi.Functions.CreateImporterGuild(Ui)
 

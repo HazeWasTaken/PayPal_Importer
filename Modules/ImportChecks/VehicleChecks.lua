@@ -46,26 +46,32 @@ local MMeta = {
 setmetatable(VehicleChecks.Functions, LMeta)
 setmetatable(VehicleChecks.Module.Functions, MMeta)
 
-Env.MRunCheck = function(Id: string)
-	local Model = game:GetObjects("rbxassetid://" .. Id)[1]
+Env.MRunCheck = function(Id: number)
+	local Success: boolean, Response: Instance | string = pcall(function()
+		return game:GetObjects("rbxassetid://" .. Id)[1]
+	end)
 
-	local Output = {}
-    table.foreach(VehicleChecks.Data.Checks, function(i, v)
-        for index, value in next, Model:GetDescendants() do
-            if value.Name == i then
-                Output[i] = true
-            end
-        end
-    end)
-
-    Model:Destroy()
-
-	local String = #Output > 0 and ""
-	for i,v in next, Output do
-		String = String .. "\n" .. i .. " Not Found"
+	if not Success then
+		return Response
 	end
 
-	return String
+	local Output = {}
+	for index, instance in next, Response:GetDescendants() do
+		if VehicleChecks.Data.Checks[instance.Name] then
+			Output[#Output + 1] = instance.Name
+		end
+	end
+
+    Response:Destroy()
+
+	local String = ""
+	for i,v in next, VehicleChecks.Data.Checks do
+		if not table.find(Output, i) then
+			String = String .. "\n" .. i .. " Not Found"
+		end
+	end
+
+	return String:len() > 0 and String or "Model is valid"
 end
 
 return VehicleChecks.Module
