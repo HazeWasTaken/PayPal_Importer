@@ -25,14 +25,14 @@ local MMeta = {
 setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
 
-Env.CreateIdTextBox = function(Channel: table, Section: table) -- Id TextBox
+Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 	local TextBox = Section.CreateTextBox(function(Number)
-		local Output = VehicleChecks.RunCheck(Number)
-		local Notif = Channel.CreateNotif("Model Check", nil, Output, {
+		local Output = VehicleChecks.Functions.RunCheck(Number)
+		local Notif = Category.CreateNotif("Model Check", nil, Output, {
 			{
-				Text = "Create Config",
+				Text = "Continue",
 				Close = true,
-				Callback = function() 
+				Callback = function()
 					print("Config")
 				end
 			},
@@ -47,22 +47,26 @@ Env.CreateIdTextBox = function(Channel: table, Section: table) -- Id TextBox
 	return TextBox
 end
 
-Env.CreateNewConfigSection = function(Channel: table) -- New Config Section
+Env.CreateNewConfigSection = function(Category: table, Channel: table) -- New Config Section
 	local Section = Channel.CreateSection("New Config")
+
+	CreateUi.Functions.CreateIdTextBox(Category, Section)
 
 	return Section
 end
 
 Env.CreateImportChannel = function(Category: table) -- Importer Channel
-	local CreateChannel = Category.CreateChannel("Importer")
+	local Channel = Category.CreateChannel("Importer")
 
-	return CreateChannel
+	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
+
+	return Channel
 end
 
 Env.CreateModsChannel = function(Category: table) -- Modifications Channel
-	local CreateChannel = Category.CreateChannel("Modifications")
+	local Channel = Category.CreateChannel("Modifications")
 
-	return CreateChannel
+	return Channel
 end
 
 Env.CreateImportCategory = function(Guild: table) -- Importer Category
@@ -89,7 +93,7 @@ Env.CreateVehcileCategory = function(Guild: table) -- Vehicle Category
 end
 
 Env.CreateImporterGuild = function(Ui: table) -- Importer Guild
-	local Guild = Ui.CreateGuild("Importer", getsynasset("jailbreak.png"), getsynasset("badimo.webm"))
+	local Guild = Ui.CreateGuild("Importer", getsynasset and getsynasset("jailbreak.png") or "", getsynasset and getsynasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)
 	CreateUi.Functions.CreateVehcileCategory(Guild)

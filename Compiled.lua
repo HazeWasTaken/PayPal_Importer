@@ -47,26 +47,32 @@ local MMeta = {
 setmetatable(VehicleChecks.Functions, LMeta)
 setmetatable(VehicleChecks.Module.Functions, MMeta)
 
-Env.MRunCheck = function(Id: string)
-	local Model = game:GetObjects("rbxassetid://" .. Id)[1]
+Env.MRunCheck = function(Id: number)
+	local Success: boolean, Response: Instance | string = pcall(function()
+		return game:GetObjects("rbxassetid://" .. Id)[1]
+	end)
 
-	local Output = {}
-    table.foreach(VehicleChecks.Data.Checks, function(i, v)
-        for index, value in next, Model:GetDescendants() do
-            if value.Name == i then
-                Output[i] = true
-            end
-        end
-    end)
-
-    Model:Destroy()
-
-	local String = #Output > 0 and ""
-	for i,v in next, Output do
-		String = String .. "\n" .. i .. " Not Found"
+	if not Success then
+		return Response
 	end
 
-	return String
+	local Output = {}
+	for index, instance in next, Response:GetDescendants() do
+		if VehicleChecks.Data.Checks[instance.Name] then
+			Output[#Output + 1] = instance.Name
+		end
+	end
+
+    Response:Destroy()
+
+	local String = ""
+	for i,v in next, VehicleChecks.Data.Checks do
+		if not table.find(Output, i) then
+			String = String .. "\n" .. i .. " Not Found"
+		end
+	end
+
+	return String:len() > 0 and String or "Model is valid"
 end
 
 return VehicleChecks.Module
@@ -1706,6 +1712,14 @@ Env.MCreateUi = function(Name: string)
                     Icon.Image = "rbxassetid://6764432293"
                     Icon.Parent = ActionButton
 
+                    ActionButton.MouseEnter:Connect(function(x, y)
+                        TweenService:Create(Icon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                    end)
+
+                    ActionButton.MouseLeave:Connect(function(x, y)
+                        TweenService:Create(Icon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(124, 124, 124)}):Play()
+                    end)
+
                     ActionButton.MouseButton1Down:Connect(function(x, y)
                         if v.Close then
                             Notif:Destroy()
@@ -1728,6 +1742,7 @@ return Library.Module
 end,
 ['Ui/Create.lua'] = function()
 local Library = import("Modules/Ui/Library.lua")
+local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
 
 local CreateUi, Env = {
 	Module = {
@@ -1753,19 +1768,51 @@ local MMeta = {
 setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
 
-Env.CreateImportChannel = function(Category: table)
-	local CreateChannel = Category.CreateChannel("Importer")
+Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
+	local TextBox = Section.CreateTextBox(function(Number)
+		local Output = VehicleChecks.Functions.RunCheck(Number)
+		local Notif = Category.CreateNotif("Model Check", nil, Output, {
+			{
+				Text = "Continue",
+				Close = true,
+				Callback = function()
+					print("Config")
+				end
+			},
+			{
+				Text = "Cancel",
+				Close = true,
+				Callback = function() end
+			}
+		})
+	end, {Name = "Model Id", Text = "", NumOnly = true})
 
-	return CreateChannel
+	return TextBox
 end
 
-Env.CreateModsChannel = function(Category: table)
-	local CreateChannel = Category.CreateChannel("Vehicle Modifications")
+Env.CreateNewConfigSection = function(Category: table, Channel: table) -- New Config Section
+	local Section = Channel.CreateSection("New Config")
 
-	return CreateChannel
+	CreateUi.Functions.CreateIdTextBox(Category, Section)
+
+	return Section
 end
 
-Env.CreateImportCategory = function(Guild: table)
+Env.CreateImportChannel = function(Category: table) -- Importer Channel
+	local Channel = Category.CreateChannel("Importer")
+
+	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
+
+	return Channel
+end
+
+Env.CreateModsChannel = function(Category: table) -- Modifications Channel
+	local Channel = Category.CreateChannel("Modifications")
+
+	return Channel
+end
+
+Env.CreateImportCategory = function(Guild: table) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
@@ -1774,16 +1821,31 @@ Env.CreateImportCategory = function(Guild: table)
 	return Category
 end
 
-Env.CreateImporterGuild = function(Ui: table)
-	local Guild = Ui.CreateGuild("Importer", getsynasset("jailbreak.png"), getsynasset("badimo.webm"))
+Env.CreatePacketChannel = function(Category: table) -- Packet Channel
+	local CreateChannel = Category.CreateChannel("Packet")
+
+	return CreateChannel
+end
+
+Env.CreateVehcileCategory = function(Guild: table) -- Vehicle Category
+	local Category = Guild.CreateCategory("Vehicle")
+
+	CreateUi.Functions.CreatePacketChannel(Category)
+
+	return Category
+end
+
+Env.CreateImporterGuild = function(Ui: table) -- Importer Guild
+	local Guild = Ui.CreateGuild("Importer", getsynasset and getsynasset("jailbreak.png") or "", getsynasset and getsynasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)
+	CreateUi.Functions.CreateVehcileCategory(Guild)
 
 	return Guild
 end
 
 Env.MCreateUi = function()
-	local Ui = Library.Functions.CreateUi("Importer")
+	local Ui = Library.Functions.CreateUi("Importer") -- mporter Ui
 
 	CreateUi.Functions.CreateImporterGuild(Ui)
 

@@ -1576,6 +1576,14 @@ Env.MCreateUi = function(Name: string)
                     Icon.Image = "rbxassetid://6764432293"
                     Icon.Parent = ActionButton
 
+                    ActionButton.MouseEnter:Connect(function(x, y)
+                        TweenService:Create(Icon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                    end)
+
+                    ActionButton.MouseLeave:Connect(function(x, y)
+                        TweenService:Create(Icon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(124, 124, 124)}):Play()
+                    end)
+
                     ActionButton.MouseButton1Down:Connect(function(x, y)
                         if v.Close then
                             Notif:Destroy()
