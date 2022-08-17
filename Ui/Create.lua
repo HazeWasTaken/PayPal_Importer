@@ -65,8 +65,8 @@ Env.CreateImportChannel = function(Category: table) -- Importer Channel
 	return Channel
 end
 
-Env.CreateModsChannel = function(Category: table) -- Modifications Channel
-	local Channel = Category.CreateChannel("Modifications")
+Env.CreateInitializedChannel = function(Category: table) -- Initialized Channel
+	local Channel = Category.CreateChannel("Initialized")
 
 	return Channel
 end
@@ -75,7 +75,7 @@ Env.CreateImportCategory = function(Guild: table) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
-	CreateUi.Functions.CreateModsChannel(Category)
+	CreateUi.Functions.CreateInitializedChannel(Category)
 
 	return Category
 end
