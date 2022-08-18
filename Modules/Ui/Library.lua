@@ -691,6 +691,80 @@ Env.MCreateUi = function(Name: string)
                             TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(29, 29, 29)}):Play()
                             Callback()
                         end)
+
+                        local ButtonLibrary = {}
+
+                        ButtonLibrary.Update = function(UpdateCallback, UpdateData: table)
+                            ButtonName.Text = UpdateData.Name or Data.Name
+                            Callback = UpdateCallback or Callback
+                        end
+
+                        return ButtonLibrary
+                    end
+
+                    InputLibrary.CreateLabel = function(Data: table)
+                        local Button = Instance.new("TextButton")
+                        Button.Name = Data.Name
+                        Button.Size = UDim2.new(0, 389, 0, 26)
+                        Button.Position = UDim2.new(0.0104167, 0, 0.297619, 0)
+                        Button.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+                        Button.AutoButtonColor = false
+                        Button.FontSize = Enum.FontSize.Size11
+                        Button.TextSize = 11
+                        Button.RichText = true
+                        Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        Button.Text = ""
+                        Button.Font = Enum.Font.Gotham
+                        Button.Parent = Section
+                        table.insert(Inputs, Button)
+
+                        local UICorner2 = Instance.new("UICorner")
+                        UICorner2.CornerRadius = UDim.new(0, 5)
+                        UICorner2.Parent = Button
+
+                        local LabelName = Instance.new("TextLabel")
+                        LabelName.Name = "LabelName"
+                        LabelName.Size = UDim2.new(0, 345, 0, 26)
+                        LabelName.BackgroundTransparency = 1
+                        LabelName.Position = UDim2.new(0.0208333, 0, 0, 0)
+                        LabelName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        LabelName.FontSize = Enum.FontSize.Size11
+                        LabelName.TextSize = 11
+                        LabelName.RichText = true
+                        LabelName.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        LabelName.Text = Data.Name .. " : " .. Data.Text
+                        LabelName.Font = Enum.Font.Gotham
+                        LabelName.TextXAlignment = Enum.TextXAlignment.Left
+                        LabelName.Parent = Button
+
+                        local LabelIcon = Instance.new("ImageLabel")
+                        LabelIcon.Name = "ButtonIcon"
+                        LabelIcon.Size = UDim2.new(0, 20, 0, 20)
+                        LabelIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
+                        LabelIcon.BackgroundTransparency = 1
+                        LabelIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
+                        LabelIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        LabelIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
+                        LabelIcon.ImageRectOffset = Vector2.new(200, 300)
+                        LabelIcon.ImageRectSize = Vector2.new(100, 100)
+                        LabelIcon.Image = "rbxassetid://6764432293"
+                        LabelIcon.Parent = Button
+
+                        Button.MouseEnter:Connect(function(x, y)
+                            TweenService:Create(LabelIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                        end)
+
+                        Button.MouseLeave:Connect(function(x, y)
+                            TweenService:Create(LabelIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
+                        end)
+
+                        local LabelLibrary = {}
+
+                        LabelLibrary.Update = function(UpdateData: table)
+                            LabelName.Text = (UpdateData.Name or Data.Name) .. " : " .. (UpdateData.Text or Data.Text)
+                        end
+
+                        return LabelLibrary
                     end
 
                     InputLibrary.CreateToggle = function(Callback, Data: table)

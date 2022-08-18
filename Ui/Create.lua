@@ -7,7 +7,11 @@ local CreateUi, Env = {
 		Functions = {},
 		Data = {}
 	},
-	Data = {},
+	Data = {
+		GlobalUi = {
+			Manage = {}
+		}
+	},
 	Functions = {}
 }, {}
 
@@ -26,6 +30,48 @@ local MMeta = {
 setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
 
+Env.CreateInitConfigButton = function(Section)-- Selected Config Button
+	local Button = Section.CreateButton(function() end, {Name = "Initialize"})
+
+	CreateUi.Data.GlobalUi.Manage.Init = Button
+
+	return Button
+end
+
+Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
+	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
+
+	CreateUi.Data.GlobalUi.Manage.Name = Label
+
+	return Label
+end
+
+Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Section
+	local Section = Channel.CreateSection("Manage Config")
+
+	CreateUi.Functions.CreateSelectedConfigName(Section)
+	CreateUi.Functions.CreateInitConfigButton(Section)
+
+	return Section
+end
+
+Env.CreateConfigListElement = function(Packet) -- Config List Element
+	CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
+		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name})
+		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
+			Packet:InitPacket()
+		end,{Name = "Initialize"})
+	end, {Name = Packet.Settings.Name})
+end
+
+Env.CreateConfigListSection = function(Channel: table) -- Config List Section
+	local Section = Channel.CreateSection("Configs")
+
+	CreateUi.Data.GlobalUi.ConfigListSection = Section
+
+	return Section
+end
+
 Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 	local TextBox = Section.CreateTextBox(function(Data: string | number)
 		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
@@ -35,7 +81,8 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 				Text = "Continue",
 				Close = true,
 				Callback = function()
-					Importer.Functions.CreateNewSave(Data)
+					local Packet = Importer.Functions.CreateNewSave(Data)
+					CreateUi.Functions.CreateConfigListElement(Packet)
 				end
 			},
 			{
@@ -50,7 +97,7 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 end
 
 Env.CreateNewConfigSection = function(Category: table, Channel: table) -- New Config Section
-	local Section = Channel.CreateSection("New Config")
+	local Section: table = Channel.CreateSection("New Config")
 
 	CreateUi.Functions.CreateIdTextBox(Category, Section)
 
@@ -58,9 +105,11 @@ Env.CreateNewConfigSection = function(Category: table, Channel: table) -- New Co
 end
 
 Env.CreateImportChannel = function(Category: table) -- Importer Channel
-	local Channel = Category.CreateChannel("Importer")
+	local Channel: table = Category.CreateChannel("Importer")
 
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
+	CreateUi.Functions.CreateConfigListSection(Channel)
+	CreateUi.Functions.CreateManageConfigSection(Channel)
 
 	return Channel
 end
@@ -104,7 +153,7 @@ Env.CreateImporterGuild = function(Ui: table) -- Importer Guild
 end
 
 Env.MCreateUi = function()
-	local Ui = Library.Functions.CreateUi("Importer") -- mporter Ui
+	local Ui = Library.Functions.CreateUi("Importer") -- Importer Ui
 
 	CreateUi.Functions.CreateImporterGuild(Ui)
 

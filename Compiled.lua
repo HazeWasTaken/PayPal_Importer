@@ -81,6 +81,8 @@ end,
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Importer, Env = {
 	Module = {
@@ -88,7 +90,8 @@ local Importer, Env = {
 		Data = {}
 	},
 	Data = {
-        Saves = {}
+        ImportPacket = {},
+		UpdatePackets = {}
     },
 	Functions = {
         GetLocalVehiclePacket = require(ReplicatedStorage.Game.Vehicle).GetLocalVehiclePacket
@@ -110,15 +113,80 @@ local MMeta = {
 setmetatable(Importer.Functions, LMeta)
 setmetatable(Importer.Module.Functions, MMeta)
 
+Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
+	local Packet = {
+		Settings = {
+			Name = Name,
+			Data = Data,
+			Model = Importer.Functions.GetLocalVehiclePacket().Model
+		},
+		Data = {
+			Initialized = false
+		}
+	}
 
-Env.MCreateNewSave = function(Data: string | number)
-    print(syn and Data or MarketplaceService:GetProductInfo(Data))
+	setmetatable(Packet, {
+		__index = self
+	})
+
+	return Packet
 end
 
-Env.LoadModel = function(Id: string)
-    local Model = game:GetObjects("rbxassetid://" .. Id)[1]
+Importer.Data.ImportPacket.UpdateModel = function(self: table, Model: Instance)
+	self.Settings.Model = Model
+end
+
+Importer.Data.ImportPacket.LoadModel = function(self: table)
+    local Model: Instance = game:GetObjects(syn and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
 
     return Model
+end
+
+Importer.Data.ImportPacket.InitPacket = function(self: table)
+	if self.Data.Initialized then
+		return
+	end
+	self.Data.Initialized = true
+	self.Data.Model = self:LoadModel()
+	self.Data.Chassis = self.Settings.Model
+
+	self.Data.Model.Parent = Workspace
+
+	for i,v in next, self.Data.Model:GetDescendants() do
+        if v:IsA("BasePart") and not v == self.Data.Model.PrimaryPart then
+            v.Anchored = false
+            local Weld = Instance.new("WeldConstraint", v)
+            Weld.Part0 = v
+            Weld.Part1 = self.Data.Model.PrimaryPart
+        end
+    end
+
+	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
+
+	RunService.Heartbeat:Connect(function(deltaTime)
+		self:Update()
+	end)
+end
+
+Importer.Data.ImportPacket.Update = function(self: table)
+	for i: number, v: Instance in next, self.Data.Chassis:GetDescendants() do
+		if v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel") then
+			v.Transparency = 1
+		end
+	end
+	for i: number, v:Instance in next, self.Data.Model:GetDescendants() do
+		if v:IsA("BasePart") then
+			v.CanCollide = false
+		end
+	end
+
+	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
+end
+
+Env.MCreateNewSave = function(Data: string | number)
+	local Packet = Importer.Data.ImportPacket:NewPacket(syn and Data or MarketplaceService:GetProductInfo(Data).Name, Data)
+
+	return Packet
 end
 
 return Importer.Module
@@ -817,6 +885,80 @@ Env.MCreateUi = function(Name: string)
                             TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(29, 29, 29)}):Play()
                             Callback()
                         end)
+
+                        local ButtonLibrary = {}
+
+                        ButtonLibrary.Update = function(UpdateCallback, UpdateData: table)
+                            ButtonName.Text = UpdateData.Name or Data.Name
+                            Callback = UpdateCallback or Callback
+                        end
+
+                        return ButtonLibrary
+                    end
+
+                    InputLibrary.CreateLabel = function(Data: table)
+                        local Button = Instance.new("TextButton")
+                        Button.Name = Data.Name
+                        Button.Size = UDim2.new(0, 389, 0, 26)
+                        Button.Position = UDim2.new(0.0104167, 0, 0.297619, 0)
+                        Button.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+                        Button.AutoButtonColor = false
+                        Button.FontSize = Enum.FontSize.Size11
+                        Button.TextSize = 11
+                        Button.RichText = true
+                        Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        Button.Text = ""
+                        Button.Font = Enum.Font.Gotham
+                        Button.Parent = Section
+                        table.insert(Inputs, Button)
+
+                        local UICorner2 = Instance.new("UICorner")
+                        UICorner2.CornerRadius = UDim.new(0, 5)
+                        UICorner2.Parent = Button
+
+                        local LabelName = Instance.new("TextLabel")
+                        LabelName.Name = "LabelName"
+                        LabelName.Size = UDim2.new(0, 345, 0, 26)
+                        LabelName.BackgroundTransparency = 1
+                        LabelName.Position = UDim2.new(0.0208333, 0, 0, 0)
+                        LabelName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        LabelName.FontSize = Enum.FontSize.Size11
+                        LabelName.TextSize = 11
+                        LabelName.RichText = true
+                        LabelName.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        LabelName.Text = Data.Name .. " : " .. Data.Text
+                        LabelName.Font = Enum.Font.Gotham
+                        LabelName.TextXAlignment = Enum.TextXAlignment.Left
+                        LabelName.Parent = Button
+
+                        local LabelIcon = Instance.new("ImageLabel")
+                        LabelIcon.Name = "ButtonIcon"
+                        LabelIcon.Size = UDim2.new(0, 20, 0, 20)
+                        LabelIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
+                        LabelIcon.BackgroundTransparency = 1
+                        LabelIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
+                        LabelIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        LabelIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
+                        LabelIcon.ImageRectOffset = Vector2.new(200, 300)
+                        LabelIcon.ImageRectSize = Vector2.new(100, 100)
+                        LabelIcon.Image = "rbxassetid://6764432293"
+                        LabelIcon.Parent = Button
+
+                        Button.MouseEnter:Connect(function(x, y)
+                            TweenService:Create(LabelIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                        end)
+
+                        Button.MouseLeave:Connect(function(x, y)
+                            TweenService:Create(LabelIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
+                        end)
+
+                        local LabelLibrary = {}
+
+                        LabelLibrary.Update = function(UpdateData: table)
+                            LabelName.Text = (UpdateData.Name or Data.Name) .. " : " .. (UpdateData.Text or Data.Text)
+                        end
+
+                        return LabelLibrary
                     end
 
                     InputLibrary.CreateToggle = function(Callback, Data: table)
@@ -1740,7 +1882,11 @@ local CreateUi, Env = {
 		Functions = {},
 		Data = {}
 	},
-	Data = {},
+	Data = {
+		GlobalUi = {
+			Manage = {}
+		}
+	},
 	Functions = {}
 }, {}
 
@@ -1759,6 +1905,48 @@ local MMeta = {
 setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
 
+Env.CreateInitConfigButton = function(Section)-- Selected Config Button
+	local Button = Section.CreateButton(function() end, {Name = "Initialize"})
+
+	CreateUi.Data.GlobalUi.Manage.Init = Button
+
+	return Button
+end
+
+Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
+	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
+
+	CreateUi.Data.GlobalUi.Manage.Name = Label
+
+	return Label
+end
+
+Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Section
+	local Section = Channel.CreateSection("Manage Config")
+
+	CreateUi.Functions.CreateSelectedConfigName(Section)
+	CreateUi.Functions.CreateInitConfigButton(Section)
+
+	return Section
+end
+
+Env.CreateConfigListElement = function(Packet) -- Config List Element
+	CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
+		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name})
+		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
+			Packet:InitPacket()
+		end,{Name = "Initialize"})
+	end, {Name = Packet.Settings.Name})
+end
+
+Env.CreateConfigListSection = function(Channel: table) -- Config List Section
+	local Section = Channel.CreateSection("Configs")
+
+	CreateUi.Data.GlobalUi.ConfigListSection = Section
+
+	return Section
+end
+
 Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 	local TextBox = Section.CreateTextBox(function(Data: string | number)
 		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
@@ -1768,7 +1956,8 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 				Text = "Continue",
 				Close = true,
 				Callback = function()
-					Importer.Functions.CreateNewSave(Data)
+					local Packet = Importer.Functions.CreateNewSave(Data)
+					CreateUi.Functions.CreateConfigListElement(Packet)
 				end
 			},
 			{
@@ -1783,7 +1972,7 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 end
 
 Env.CreateNewConfigSection = function(Category: table, Channel: table) -- New Config Section
-	local Section = Channel.CreateSection("New Config")
+	local Section: table = Channel.CreateSection("New Config")
 
 	CreateUi.Functions.CreateIdTextBox(Category, Section)
 
@@ -1791,15 +1980,17 @@ Env.CreateNewConfigSection = function(Category: table, Channel: table) -- New Co
 end
 
 Env.CreateImportChannel = function(Category: table) -- Importer Channel
-	local Channel = Category.CreateChannel("Importer")
+	local Channel: table = Category.CreateChannel("Importer")
 
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
+	CreateUi.Functions.CreateConfigListSection(Channel)
+	CreateUi.Functions.CreateManageConfigSection(Channel)
 
 	return Channel
 end
 
-Env.CreateModsChannel = function(Category: table) -- Modifications Channel
-	local Channel = Category.CreateChannel("Modifications")
+Env.CreateInitializedChannel = function(Category: table) -- Initialized Channel
+	local Channel = Category.CreateChannel("Initialized")
 
 	return Channel
 end
@@ -1808,7 +1999,7 @@ Env.CreateImportCategory = function(Guild: table) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
-	CreateUi.Functions.CreateModsChannel(Category)
+	CreateUi.Functions.CreateInitializedChannel(Category)
 
 	return Category
 end
@@ -1837,7 +2028,7 @@ Env.CreateImporterGuild = function(Ui: table) -- Importer Guild
 end
 
 Env.MCreateUi = function()
-	local Ui = Library.Functions.CreateUi("Importer") -- mporter Ui
+	local Ui = Library.Functions.CreateUi("Importer") -- Importer Ui
 
 	CreateUi.Functions.CreateImporterGuild(Ui)
 
@@ -1847,6 +2038,8 @@ end
 return CreateUi.Module
 end,
 }
+--!nocheck
+
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
