@@ -41,7 +41,9 @@ Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
 			Model = Importer.Functions.GetLocalVehiclePacket().Model
 		},
 		Data = {
-			Initialized = false
+			Initialized = false,
+			Calculated = {},
+			RelativeWheels = {}
 		}
 	}
 
@@ -70,16 +72,27 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 	self.Data.Model = self:LoadModel()
 	self.Data.Chassis = self.Settings.Model
 
-	self.Data.Model.Parent = Workspace
+	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+		if string.find(v.Name, "Wheel") and v:IsA("Model") then
+			table.insert(self.Data.Calculated, v.Wheel)
+			table.insert(self.Data.Calculated, v.Rim)
+			self.Data.RelativeWheels[v.Name] = {
+				Rim = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Rim.CFrame),
+				Wheel = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Wheel.CFrame),
+			}
+		end
+	end
 
-	for i,v in next, self.Data.Model:GetDescendants() do
-        if v:IsA("BasePart") and not v == self.Data.Model.PrimaryPart then
+	for i: number, v: Instance in next, self.Data.Model:GetDescendants() do
+        if v:IsA("BasePart") and not v == self.Data.Model.PrimaryPart and not table.find(self.Data.Calculated, v) then
             v.Anchored = false
             local Weld = Instance.new("WeldConstraint", v)
             Weld.Part0 = v
             Weld.Part1 = self.Data.Model.PrimaryPart
         end
     end
+
+	self.Data.Model.Parent = Workspace
 
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
 
@@ -92,7 +105,7 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 	self.Data.Chassis.Seat.Weld.Part1 = self.Data.Model.PrimaryPart
 	self.Data.Chassis.Seat.Weld.Enabled = true
 
-	RunService.Heartbeat:Connect(function(deltaTime)
+	RunService.Heartbeat:Connect(function()
 		self:Update()
 	end)
 end
@@ -110,6 +123,13 @@ Importer.Data.ImportPacket.Update = function(self: table)
 	end
 
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
+
+	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+		if string.find(v.Name, "Wheel") and v:IsA("Model") then
+			local RimCFrame, RelativeRim = self.Data.Chassis[v.Name].Rim.CFrame, self.Data.RelativeWheels[v.Name].Rim
+			local WheelCFrame, RelativeWheel = self.Data.Chassis[v.Name].Wheel.CFrame, self.Data.RelativeWheels[v.Name].Wheel
+		end
+	end
 end
 
 Env.MCreateNewSave = function(Data: string | number)
