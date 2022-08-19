@@ -12,7 +12,7 @@ local Importer, Env = {
 	},
 	Data = {
         ImportPacket = {},
-		UpdatePackets = {}
+		Packets = {}
     },
 	Functions = {
         GetLocalVehiclePacket = require(ReplicatedStorage.Game.Vehicle).GetLocalVehiclePacket
@@ -71,11 +71,14 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 		return
 	end
 	self.Data.Initialized = true
-	self.Data.Key = tick() -- create key
+	self.Data.Key = os.clock() .. string.char(math.random(1, 1000))
 	self.Data.Model = self:LoadModel()
 	self.Data.Chassis = self.Settings.Model
 
-	CollectionService:AddTag(self.Data.Chassis, "")
+	Importer.Data.Packets[self.Data.Key] = self
+
+	self.Data.Chassis:SetAttribute("Key", self.Data.Key)
+	CollectionService:AddTag(self.Data.Chassis, "Overlayed")
 
 	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
