@@ -1,3 +1,4 @@
+local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -70,8 +71,11 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 		return
 	end
 	self.Data.Initialized = true
+	self.Data.Key = tick() -- create key
 	self.Data.Model = self:LoadModel()
 	self.Data.Chassis = self.Settings.Model
+
+	CollectionService:AddTag(self.Data.Chassis, "")
 
 	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
