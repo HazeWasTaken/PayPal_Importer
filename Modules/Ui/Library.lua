@@ -1012,75 +1012,79 @@ Env.MCreateUi = function(Name: string)
                             TweenService:Create(DropdownIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
                         end)
 
-                        for i,v in next, Data.Options do
-                            v = type(v) == "table" and rawget(v, "Name") and rawget(v, "Data") and v or {
-                                Name = v,
-                                Data = v
-                            }
-
-                            local Button = Instance.new("TextButton")
-                            Button.Name = v.Name
-                            Button.Size = UDim2.new(0, 367, 0, 26)
-                            Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-                            Button.AutoButtonColor = false
-                            Button.FontSize = Enum.FontSize.Size11
-                            Button.TextSize = 11
-                            Button.RichText = true
-                            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            Button.Text = ""
-                            Button.Font = Enum.Font.Gotham
-                            Button.Parent = Content
-                            table.insert(Options_Instances, Button)
-                            
-                            local UICorner2 = Instance.new("UICorner")
-                            UICorner2.CornerRadius = UDim.new(0, 5)
-                            UICorner2.Parent = Button
-                            
-                            local ButtonName = Instance.new("TextLabel")
-                            ButtonName.Name = "ButtonName"
-                            ButtonName.Size = UDim2.new(0, 345, 0, 26)
-                            ButtonName.BackgroundTransparency = 1
-                            ButtonName.Position = UDim2.new(0.0208333, 0, 0, 0)
-                            ButtonName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonName.FontSize = Enum.FontSize.Size11
-                            ButtonName.TextSize = 11
-                            ButtonName.RichText = true
-                            ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonName.Text = v.Name
-                            ButtonName.Font = Enum.Font.Gotham
-                            ButtonName.TextXAlignment = Enum.TextXAlignment.Left
-                            ButtonName.Parent = Button
-                            
-                            local ButtonIcon = Instance.new("ImageLabel")
-                            ButtonIcon.Name = "ButtonIcon"
-                            ButtonIcon.Size = UDim2.new(0, 20, 0, 20)
-                            ButtonIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
-                            ButtonIcon.BackgroundTransparency = 1
-                            ButtonIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
-                            ButtonIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
-                            ButtonIcon.ImageRectOffset = Vector2.new(400, 0)
-                            ButtonIcon.ImageRectSize = Vector2.new(100, 100)
-                            ButtonIcon.Image = "rbxassetid://6764432293"
-                            ButtonIcon.Parent = Button
-
-                            Button.MouseEnter:Connect(function(x, y)
-                                TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
-                            end)
-    
-                            Button.MouseLeave:Connect(function(x, y)
-                                TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
-                            end)
-    
-                            Button.MouseButton1Down:Connect(function(x, y)
-                                TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
-                                task.wait(.126)
-                                TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                Callback(v.Data, v.Name)
-                            end)
-                        end
-
                         local DropdownLibrary = {}
+
+                        DropdownLibrary.AddOptions = function(Options)
+                            for i,v in next, Options do
+                                v = type(v) == "table" and rawget(v, "Name") and rawget(v, "Data") and v or {
+                                    Name = v,
+                                    Data = v
+                                }
+
+                                local Button = Instance.new("TextButton")
+                                Button.Name = v.Name
+                                Button.Size = UDim2.new(0, 367, 0, 26)
+                                Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                                Button.AutoButtonColor = false
+                                Button.FontSize = Enum.FontSize.Size11
+                                Button.TextSize = 11
+                                Button.RichText = true
+                                Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                Button.Text = ""
+                                Button.Font = Enum.Font.Gotham
+                                Button.Parent = Content
+                                table.insert(Options_Instances, Button)
+
+                                local UICorner2 = Instance.new("UICorner")
+                                UICorner2.CornerRadius = UDim.new(0, 5)
+                                UICorner2.Parent = Button
+
+                                local ButtonName = Instance.new("TextLabel")
+                                ButtonName.Name = "ButtonName"
+                                ButtonName.Size = UDim2.new(0, 345, 0, 26)
+                                ButtonName.BackgroundTransparency = 1
+                                ButtonName.Position = UDim2.new(0.0208333, 0, 0, 0)
+                                ButtonName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                                ButtonName.FontSize = Enum.FontSize.Size11
+                                ButtonName.TextSize = 11
+                                ButtonName.RichText = true
+                                ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                ButtonName.Text = v.Name
+                                ButtonName.Font = Enum.Font.Gotham
+                                ButtonName.TextXAlignment = Enum.TextXAlignment.Left
+                                ButtonName.Parent = Button
+
+                                local ButtonIcon = Instance.new("ImageLabel")
+                                ButtonIcon.Name = "ButtonIcon"
+                                ButtonIcon.Size = UDim2.new(0, 20, 0, 20)
+                                ButtonIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
+                                ButtonIcon.BackgroundTransparency = 1
+                                ButtonIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
+                                ButtonIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                                ButtonIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
+                                ButtonIcon.ImageRectOffset = Vector2.new(400, 0)
+                                ButtonIcon.ImageRectSize = Vector2.new(100, 100)
+                                ButtonIcon.Image = "rbxassetid://6764432293"
+                                ButtonIcon.Parent = Button
+
+                                Button.MouseEnter:Connect(function(x, y)
+                                    v.Enter()
+                                    TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                                end)
+
+                                Button.MouseLeave:Connect(function(x, y)
+                                    v.Leave()
+                                    TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
+                                end)
+
+                                Button.MouseButton1Down:Connect(function(x, y)
+                                    TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                                    task.wait(.126)
+                                    TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+                                    Callback(v.Data, v.Name)
+                                end)
+                            end
+                        end
 
                         DropdownLibrary.ClearOptions = function()
                             for i,v in next, Options_Instances do
@@ -1088,9 +1092,9 @@ Env.MCreateUi = function(Name: string)
                             end
                         end
 
-                        DropdownLibrary.AddOption = function(Name, Data)
+                        DropdownLibrary.AddOption = function(Data)
                             local Button = Instance.new("TextButton")
-                            Button.Name = Name
+                            Button.Name = Data.Name
                             Button.Size = UDim2.new(0, 367, 0, 26)
                             Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
                             Button.AutoButtonColor = false
@@ -1102,11 +1106,11 @@ Env.MCreateUi = function(Name: string)
                             Button.Font = Enum.Font.Gotham
                             Button.Parent = Content
                             table.insert(Options_Instances, Button)
-                            
+
                             local UICorner2 = Instance.new("UICorner")
                             UICorner2.CornerRadius = UDim.new(0, 5)
                             UICorner2.Parent = Button
-                            
+
                             local ButtonName = Instance.new("TextLabel")
                             ButtonName.Name = "ButtonName"
                             ButtonName.Size = UDim2.new(0, 345, 0, 26)
@@ -1117,11 +1121,11 @@ Env.MCreateUi = function(Name: string)
                             ButtonName.TextSize = 11
                             ButtonName.RichText = true
                             ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonName.Text = Name
+                            ButtonName.Text = Data.Name
                             ButtonName.Font = Enum.Font.Gotham
                             ButtonName.TextXAlignment = Enum.TextXAlignment.Left
                             ButtonName.Parent = Button
-                            
+
                             local ButtonIcon = Instance.new("ImageLabel")
                             ButtonIcon.Name = "ButtonIcon"
                             ButtonIcon.Size = UDim2.new(0, 20, 0, 20)
@@ -1137,19 +1141,33 @@ Env.MCreateUi = function(Name: string)
 
                             Button.MouseEnter:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                                task.wait()
+                                Data.Enter()
                             end)
-    
+
                             Button.MouseLeave:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
+                                Data.Leave()
                             end)
-    
+
                             Button.MouseButton1Down:Connect(function(x, y)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait(.126)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                Callback(Data, Name)
+                                Callback(Data.Data, Data.Name)
                             end)
                         end
+
+                        DropdownLibrary.Update = function(UpdateCallback, UpdateData)
+                            DropdownName.Text = UpdateData.Name or Data.Name
+                            if UpdateData.Options then
+                                DropdownLibrary.ClearOptions()
+                                DropdownLibrary.AddOptions(UpdateData.Options)
+                            end
+                            Callback = UpdateCallback or Callback
+                        end
+
+                        DropdownLibrary.AddOptions(Data.Options)
 
                         return DropdownLibrary
                     end
@@ -1162,7 +1180,7 @@ Env.MCreateUi = function(Name: string)
                         Textbox.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
                         Textbox.Parent = Section
                         table.insert(Inputs, Textbox)
-                        
+
                         local Input = Instance.new("TextBox")
                         Input.Name = "Input"
                         Input.Size = UDim2.new(0, 348, 0, 21)

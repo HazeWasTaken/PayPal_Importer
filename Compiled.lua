@@ -118,10 +118,13 @@ Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
 		Settings = {
 			Name = Name,
 			Data = Data,
-			Model = Importer.Functions.GetLocalVehiclePacket().Model
+			Model = nil
 		},
 		Data = {
-			Initialized = false
+			Initialized = false,
+			Calculated = {},
+			LatchCFrames = {},
+			RelativeWheels = {}
 		}
 	}
 
@@ -150,21 +153,42 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 	self.Data.Model = self:LoadModel()
 	self.Data.Chassis = self.Settings.Model
 
+	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+		if string.find(v.Name, "Wheel") and v:IsA("Model") then
+			table.insert(self.Data.Calculated, v.Wheel)
+			table.insert(self.Data.Calculated, v.Rim)
+			self.Data.RelativeWheels[v.Name] = {
+				Rim = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Rim.CFrame),
+				Wheel = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Wheel.CFrame),
+			}
+		end
+	end
+
+	for i: number, v: Instance in next, self.Data.Model:GetDescendants() do
+		if v:IsA("Weld") then
+			v:Destroy()
+		end
+		if v:IsA("BasePart") then
+			v.Anchored = false
+			if v ~= self.Data.Model.PrimaryPart and not table.find(self.Data.Calculated, v) then
+				self.Data.LatchCFrames[v] = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.CFrame)
+			end
+		end
+	end
+
 	self.Data.Model.Parent = Workspace
 
-	for i,v in next, self.Data.Model:GetDescendants() do
-        if v:IsA("BasePart") and not v == self.Data.Model.PrimaryPart then
-            v.Anchored = false
-            local Weld = Instance.new("WeldConstraint", v)
-            Weld.Part0 = v
-            Weld.Part1 = self.Data.Model.PrimaryPart
-        end
-    end
-
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
+	self.Data.Model.Seat.CFrame = self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.LatchCFrames[self.Data.Model.Seat])
+	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
 
-	RunService.Heartbeat:Connect(function(deltaTime)
+	local Update = RunService.Heartbeat:Connect(function()
 		self:Update()
+	end)
+	Workspace.Vehicles.DescendantRemoving:Connect(function(descendant)
+		if descendant == self.Data.Chassis then
+			Update:Disconnect()
+		end
 	end)
 end
 
@@ -181,6 +205,27 @@ Importer.Data.ImportPacket.Update = function(self: table)
 	end
 
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
+
+	for i,v in next, self.Data.LatchCFrames do
+		i.CFrame = self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(v)
+	end
+
+	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+		if string.find(v.Name, "Wheel") and v:IsA("Model") then
+			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
+			local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
+
+			RimCFrame[1] = RelativeRim.X
+			RimCFrame[3] = RelativeRim.Z
+			WheelCFrame[1] = RelativeWheel.X
+			WheelCFrame[3] = RelativeWheel.Z
+
+			v.Rim.CFrame = CFrame.new(table.unpack(RimCFrame))
+			self.Data.Chassis[v.Name].Rim.Size = v.Rim.Size
+			v.Wheel.CFrame = CFrame.new(table.unpack(WheelCFrame))
+			self.Data.Chassis[v.Name].Wheel.Size = v.Wheel.Size
+		end
+	end
 end
 
 Env.MCreateNewSave = function(Data: string | number)
@@ -1206,75 +1251,79 @@ Env.MCreateUi = function(Name: string)
                             TweenService:Create(DropdownIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
                         end)
 
-                        for i,v in next, Data.Options do
-                            v = type(v) == "table" and rawget(v, "Name") and rawget(v, "Data") and v or {
-                                Name = v,
-                                Data = v
-                            }
-
-                            local Button = Instance.new("TextButton")
-                            Button.Name = v.Name
-                            Button.Size = UDim2.new(0, 367, 0, 26)
-                            Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-                            Button.AutoButtonColor = false
-                            Button.FontSize = Enum.FontSize.Size11
-                            Button.TextSize = 11
-                            Button.RichText = true
-                            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            Button.Text = ""
-                            Button.Font = Enum.Font.Gotham
-                            Button.Parent = Content
-                            table.insert(Options_Instances, Button)
-                            
-                            local UICorner2 = Instance.new("UICorner")
-                            UICorner2.CornerRadius = UDim.new(0, 5)
-                            UICorner2.Parent = Button
-                            
-                            local ButtonName = Instance.new("TextLabel")
-                            ButtonName.Name = "ButtonName"
-                            ButtonName.Size = UDim2.new(0, 345, 0, 26)
-                            ButtonName.BackgroundTransparency = 1
-                            ButtonName.Position = UDim2.new(0.0208333, 0, 0, 0)
-                            ButtonName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonName.FontSize = Enum.FontSize.Size11
-                            ButtonName.TextSize = 11
-                            ButtonName.RichText = true
-                            ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonName.Text = v.Name
-                            ButtonName.Font = Enum.Font.Gotham
-                            ButtonName.TextXAlignment = Enum.TextXAlignment.Left
-                            ButtonName.Parent = Button
-                            
-                            local ButtonIcon = Instance.new("ImageLabel")
-                            ButtonIcon.Name = "ButtonIcon"
-                            ButtonIcon.Size = UDim2.new(0, 20, 0, 20)
-                            ButtonIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
-                            ButtonIcon.BackgroundTransparency = 1
-                            ButtonIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
-                            ButtonIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
-                            ButtonIcon.ImageRectOffset = Vector2.new(400, 0)
-                            ButtonIcon.ImageRectSize = Vector2.new(100, 100)
-                            ButtonIcon.Image = "rbxassetid://6764432293"
-                            ButtonIcon.Parent = Button
-
-                            Button.MouseEnter:Connect(function(x, y)
-                                TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
-                            end)
-    
-                            Button.MouseLeave:Connect(function(x, y)
-                                TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
-                            end)
-    
-                            Button.MouseButton1Down:Connect(function(x, y)
-                                TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
-                                task.wait(.126)
-                                TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                Callback(v.Data, v.Name)
-                            end)
-                        end
-
                         local DropdownLibrary = {}
+
+                        DropdownLibrary.AddOptions = function(Options)
+                            for i,v in next, Options do
+                                v = type(v) == "table" and rawget(v, "Name") and rawget(v, "Data") and v or {
+                                    Name = v,
+                                    Data = v
+                                }
+
+                                local Button = Instance.new("TextButton")
+                                Button.Name = v.Name
+                                Button.Size = UDim2.new(0, 367, 0, 26)
+                                Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                                Button.AutoButtonColor = false
+                                Button.FontSize = Enum.FontSize.Size11
+                                Button.TextSize = 11
+                                Button.RichText = true
+                                Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                Button.Text = ""
+                                Button.Font = Enum.Font.Gotham
+                                Button.Parent = Content
+                                table.insert(Options_Instances, Button)
+
+                                local UICorner2 = Instance.new("UICorner")
+                                UICorner2.CornerRadius = UDim.new(0, 5)
+                                UICorner2.Parent = Button
+
+                                local ButtonName = Instance.new("TextLabel")
+                                ButtonName.Name = "ButtonName"
+                                ButtonName.Size = UDim2.new(0, 345, 0, 26)
+                                ButtonName.BackgroundTransparency = 1
+                                ButtonName.Position = UDim2.new(0.0208333, 0, 0, 0)
+                                ButtonName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                                ButtonName.FontSize = Enum.FontSize.Size11
+                                ButtonName.TextSize = 11
+                                ButtonName.RichText = true
+                                ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                ButtonName.Text = v.Name
+                                ButtonName.Font = Enum.Font.Gotham
+                                ButtonName.TextXAlignment = Enum.TextXAlignment.Left
+                                ButtonName.Parent = Button
+
+                                local ButtonIcon = Instance.new("ImageLabel")
+                                ButtonIcon.Name = "ButtonIcon"
+                                ButtonIcon.Size = UDim2.new(0, 20, 0, 20)
+                                ButtonIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
+                                ButtonIcon.BackgroundTransparency = 1
+                                ButtonIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
+                                ButtonIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                                ButtonIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
+                                ButtonIcon.ImageRectOffset = Vector2.new(400, 0)
+                                ButtonIcon.ImageRectSize = Vector2.new(100, 100)
+                                ButtonIcon.Image = "rbxassetid://6764432293"
+                                ButtonIcon.Parent = Button
+
+                                Button.MouseEnter:Connect(function(x, y)
+                                    v.Enter()
+                                    TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                                end)
+
+                                Button.MouseLeave:Connect(function(x, y)
+                                    v.Leave()
+                                    TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
+                                end)
+
+                                Button.MouseButton1Down:Connect(function(x, y)
+                                    TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                                    task.wait(.126)
+                                    TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+                                    Callback(v.Data, v.Name)
+                                end)
+                            end
+                        end
 
                         DropdownLibrary.ClearOptions = function()
                             for i,v in next, Options_Instances do
@@ -1282,9 +1331,9 @@ Env.MCreateUi = function(Name: string)
                             end
                         end
 
-                        DropdownLibrary.AddOption = function(Name, Data)
+                        DropdownLibrary.AddOption = function(Data)
                             local Button = Instance.new("TextButton")
-                            Button.Name = Name
+                            Button.Name = Data.Name
                             Button.Size = UDim2.new(0, 367, 0, 26)
                             Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
                             Button.AutoButtonColor = false
@@ -1296,11 +1345,11 @@ Env.MCreateUi = function(Name: string)
                             Button.Font = Enum.Font.Gotham
                             Button.Parent = Content
                             table.insert(Options_Instances, Button)
-                            
+
                             local UICorner2 = Instance.new("UICorner")
                             UICorner2.CornerRadius = UDim.new(0, 5)
                             UICorner2.Parent = Button
-                            
+
                             local ButtonName = Instance.new("TextLabel")
                             ButtonName.Name = "ButtonName"
                             ButtonName.Size = UDim2.new(0, 345, 0, 26)
@@ -1311,11 +1360,11 @@ Env.MCreateUi = function(Name: string)
                             ButtonName.TextSize = 11
                             ButtonName.RichText = true
                             ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonName.Text = Name
+                            ButtonName.Text = Data.Name
                             ButtonName.Font = Enum.Font.Gotham
                             ButtonName.TextXAlignment = Enum.TextXAlignment.Left
                             ButtonName.Parent = Button
-                            
+
                             local ButtonIcon = Instance.new("ImageLabel")
                             ButtonIcon.Name = "ButtonIcon"
                             ButtonIcon.Size = UDim2.new(0, 20, 0, 20)
@@ -1331,19 +1380,33 @@ Env.MCreateUi = function(Name: string)
 
                             Button.MouseEnter:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                                task.wait()
+                                Data.Enter()
                             end)
-    
+
                             Button.MouseLeave:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
+                                Data.Leave()
                             end)
-    
+
                             Button.MouseButton1Down:Connect(function(x, y)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait(.126)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                Callback(Data, Name)
+                                Callback(Data.Data, Data.Name)
                             end)
                         end
+
+                        DropdownLibrary.Update = function(UpdateCallback, UpdateData)
+                            DropdownName.Text = UpdateData.Name or Data.Name
+                            if UpdateData.Options then
+                                DropdownLibrary.ClearOptions()
+                                DropdownLibrary.AddOptions(UpdateData.Options)
+                            end
+                            Callback = UpdateCallback or Callback
+                        end
+
+                        DropdownLibrary.AddOptions(Data.Options)
 
                         return DropdownLibrary
                     end
@@ -1356,7 +1419,7 @@ Env.MCreateUi = function(Name: string)
                         Textbox.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
                         Textbox.Parent = Section
                         table.insert(Inputs, Textbox)
-                        
+
                         local Input = Instance.new("TextBox")
                         Input.Name = "Input"
                         Input.Size = UDim2.new(0, 348, 0, 21)
@@ -1873,6 +1936,8 @@ end
 return Library.Module
 end,
 ['Ui/Create.lua'] = function()
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
 local Importer = import("Modules/Importer/Importer.lua")
@@ -1913,6 +1978,49 @@ Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	return Button
 end
 
+Env.CreateSelectModelDropdown = function(Section)
+	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Selected Model", Options = {}}), {}
+
+	AddVehicle = function(Vehicle)
+		local Seat = Vehicle:FindFirstChild("Seat")
+		if Seat and Seat.PlayerName then
+			if Connections[Seat] then
+				Connections[Seat]:Disconnect()
+			end
+			Connections[Seat] = Seat.PlayerName:GetPropertyChangedSignal("Value"):Connect(function()
+				ReConstruct()
+			end)
+		end
+		Dropdown.AddOption({
+			Name = Vehicle.Name .. " : ".. (Seat and Seat.PlayerName and Seat.PlayerName.Value or ""),
+			Data = Vehicle,
+			Enter = function()
+				Workspace.CurrentCamera.CameraSubject = Vehicle.Camera
+			end,
+			Leave = function()
+				Workspace.CurrentCamera.CameraSubject = Players.LocalPlayer.Character.Humanoid
+			end
+		})
+	end
+
+	ReConstruct = function()
+		Dropdown:ClearOptions()
+
+		for i,v in next, Workspace.Vehicles:GetChildren() do
+			AddVehicle(v)
+		end
+	end
+
+	ReConstruct()
+
+	Workspace.Vehicles.ChildAdded:Connect(ReConstruct)
+	Workspace.Vehicles.ChildRemoved:Connect(ReConstruct)
+
+	CreateUi.Data.GlobalUi.Manage.Models = Dropdown
+
+	return Dropdown
+end
+
 Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
 	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
 
@@ -1925,6 +2033,7 @@ Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Sectio
 	local Section = Channel.CreateSection("Manage Config")
 
 	CreateUi.Functions.CreateSelectedConfigName(Section)
+	CreateUi.Functions.CreateSelectModelDropdown(Section)
 	CreateUi.Functions.CreateInitConfigButton(Section)
 
 	return Section
@@ -1933,6 +2042,9 @@ end
 Env.CreateConfigListElement = function(Packet) -- Config List Element
 	CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
 		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name})
+		CreateUi.Data.GlobalUi.Manage.Models.Update(function(Model)
+			Packet:UpdateModel(Model)
+		end, {Name = "Selected Model"})
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
 			Packet:InitPacket()
 		end,{Name = "Initialize"})

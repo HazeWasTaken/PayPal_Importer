@@ -1,3 +1,5 @@
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
 local Importer = import("Modules/Importer/Importer.lua")
@@ -38,6 +40,49 @@ Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	return Button
 end
 
+Env.CreateSelectModelDropdown = function(Section)
+	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Selected Model", Options = {}}), {}
+
+	AddVehicle = function(Vehicle)
+		local Seat = Vehicle:FindFirstChild("Seat")
+		if Seat and Seat.PlayerName then
+			if Connections[Seat] then
+				Connections[Seat]:Disconnect()
+			end
+			Connections[Seat] = Seat.PlayerName:GetPropertyChangedSignal("Value"):Connect(function()
+				ReConstruct()
+			end)
+		end
+		Dropdown.AddOption({
+			Name = Vehicle.Name .. " : ".. (Seat and Seat.PlayerName and Seat.PlayerName.Value or ""),
+			Data = Vehicle,
+			Enter = function()
+				Workspace.CurrentCamera.CameraSubject = Vehicle.Camera
+			end,
+			Leave = function()
+				Workspace.CurrentCamera.CameraSubject = Players.LocalPlayer.Character.Humanoid
+			end
+		})
+	end
+
+	ReConstruct = function()
+		Dropdown:ClearOptions()
+
+		for i,v in next, Workspace.Vehicles:GetChildren() do
+			AddVehicle(v)
+		end
+	end
+
+	ReConstruct()
+
+	Workspace.Vehicles.ChildAdded:Connect(ReConstruct)
+	Workspace.Vehicles.ChildRemoved:Connect(ReConstruct)
+
+	CreateUi.Data.GlobalUi.Manage.Models = Dropdown
+
+	return Dropdown
+end
+
 Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
 	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
 
@@ -50,6 +95,7 @@ Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Sectio
 	local Section = Channel.CreateSection("Manage Config")
 
 	CreateUi.Functions.CreateSelectedConfigName(Section)
+	CreateUi.Functions.CreateSelectModelDropdown(Section)
 	CreateUi.Functions.CreateInitConfigButton(Section)
 
 	return Section
@@ -58,6 +104,9 @@ end
 Env.CreateConfigListElement = function(Packet) -- Config List Element
 	CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
 		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name})
+		CreateUi.Data.GlobalUi.Manage.Models.Update(function(Model)
+			Packet:UpdateModel(Model)
+		end, {Name = "Selected Model"})
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
 			Packet:InitPacket()
 		end,{Name = "Initialize"})

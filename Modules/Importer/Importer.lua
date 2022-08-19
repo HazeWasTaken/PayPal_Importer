@@ -38,11 +38,12 @@ Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
 		Settings = {
 			Name = Name,
 			Data = Data,
-			Model = Importer.Functions.GetLocalVehiclePacket().Model
+			Model = nil
 		},
 		Data = {
 			Initialized = false,
 			Calculated = {},
+			LatchCFrames = {},
 			RelativeWheels = {}
 		}
 	}
@@ -84,29 +85,30 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 	end
 
 	for i: number, v: Instance in next, self.Data.Model:GetDescendants() do
-        if v:IsA("BasePart") and not v == self.Data.Model.PrimaryPart and not table.find(self.Data.Calculated, v) then
-            v.Anchored = false
-            local Weld = Instance.new("WeldConstraint", v)
-            Weld.Part0 = v
-            Weld.Part1 = self.Data.Model.PrimaryPart
-        end
-    end
+		if v:IsA("Weld") then
+			v:Destroy()
+		end
+		if v:IsA("BasePart") then
+			v.Anchored = false
+			if v ~= self.Data.Model.PrimaryPart and not table.find(self.Data.Calculated, v) then
+				self.Data.LatchCFrames[v] = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.CFrame)
+			end
+		end
+	end
 
 	self.Data.Model.Parent = Workspace
 
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
+	self.Data.Model.Seat.CFrame = self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.LatchCFrames[self.Data.Model.Seat])
+	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
 
-	self.Data.Chassis.Seat.Weld:Destroy()
-    self.Data.Model.Seat.WeldConstraint.Parent = self.Data.Chassis.Seat
-    self.Data.Chassis.Seat.WeldConstraint.Part0 = self.Data.Chassis.Seat
-
-	self.Data.Chassis.Seat.Weld.Enabled = false
-	self.Data.Chassis.Seat.CFrame = self.Data.Model.Seat.CFrame
-	self.Data.Chassis.Seat.Weld.Part1 = self.Data.Model.PrimaryPart
-	self.Data.Chassis.Seat.Weld.Enabled = true
-
-	RunService.Heartbeat:Connect(function()
+	local Update = RunService.Heartbeat:Connect(function()
 		self:Update()
+	end)
+	Workspace.Vehicles.DescendantRemoving:Connect(function(descendant)
+		if descendant == self.Data.Chassis then
+			Update:Disconnect()
+		end
 	end)
 end
 
@@ -124,10 +126,24 @@ Importer.Data.ImportPacket.Update = function(self: table)
 
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
 
+	for i,v in next, self.Data.LatchCFrames do
+		i.CFrame = self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(v)
+	end
+
 	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
-			local RimCFrame, RelativeRim = self.Data.Chassis[v.Name].Rim.CFrame, self.Data.RelativeWheels[v.Name].Rim
-			local WheelCFrame, RelativeWheel = self.Data.Chassis[v.Name].Wheel.CFrame, self.Data.RelativeWheels[v.Name].Wheel
+			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
+			local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
+
+			RimCFrame[1] = RelativeRim.X
+			RimCFrame[3] = RelativeRim.Z
+			WheelCFrame[1] = RelativeWheel.X
+			WheelCFrame[3] = RelativeWheel.Z
+
+			v.Rim.CFrame = CFrame.new(table.unpack(RimCFrame))
+			self.Data.Chassis[v.Name].Rim.Size = v.Rim.Size
+			v.Wheel.CFrame = CFrame.new(table.unpack(WheelCFrame))
+			self.Data.Chassis[v.Name].Wheel.Size = v.Wheel.Size
 		end
 	end
 end
