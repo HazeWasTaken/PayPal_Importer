@@ -56,8 +56,8 @@ local MMeta = {
 setmetatable(VehicleChecks.Functions, LMeta)
 setmetatable(VehicleChecks.Module.Functions, MMeta)
 
-Env.MRunCheck = function(Data: number | string)
-	local Success: boolean, Response: Instance | string = pcall(function()
+Env.MRunCheck = function(Data)
+	local Success, Response = pcall(function()
 		return game:GetObjects(syn and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
 	end)
 
@@ -185,9 +185,9 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Env.GetNearestThrust = function(Wheel: Model)
-	local Thrust: BasePart, Distance: number = nil, 9e9
-	for i: number, v: Instance in next, Wheel.Parent:GetChildren() do
+Env.GetNearestThrust = function(Wheel)
+	local Thrust, Distance = nil, 9e9
+	for i, v in next, Wheel.Parent:GetChildren() do
 		if v.Name == "Thrust" then
 			local Magnitude = math.abs((Wheel.Wheel.Position - v.Position).Magnitude)
 			if Distance > Magnitude then
@@ -198,7 +198,7 @@ Env.GetNearestThrust = function(Wheel: Model)
 	return Thrust, Distance
 end
 
-Importer.Data.ImportPacket.NewPacket = function(self: table, Name: string, Data: Instance)
+Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
 	local Packet = {
 		Settings = {
 			Name = Name,
@@ -225,7 +225,7 @@ Importer.Data.ImportPacket.NewPacket = function(self: table, Name: string, Data:
 	return Packet
 end
 
-Importer.Data.ImportPacket.UpdateModel = function(self: table, Model: Instance)
+Importer.Data.ImportPacket.UpdateModel = function(self, Model)
 	if self.Data.Initialized then
 		return "This config has already been initialized, you can not update it's base model\nPlease clone the config if you would like to overlay it over another model", Vector2.new(600, 800)
 	end
@@ -233,17 +233,17 @@ Importer.Data.ImportPacket.UpdateModel = function(self: table, Model: Instance)
 	return "Model Updated", Vector2.new(0, 900)
 end
 
-Importer.Data.ImportPacket.UpdateHeight = function(self: table, Height: number)
+Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 	self.Settings.Height = Height
 end
 
-Importer.Data.ImportPacket.LoadModel = function(self: table)
-    local Model: Instance = game:GetObjects(syn and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
+Importer.Data.ImportPacket.LoadModel = function(self)
+    local Model = game:GetObjects(syn and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
 
     return Model
 end
 
-Importer.Data.ImportPacket.InitPacket = function(self: table)
+Importer.Data.ImportPacket.InitPacket = function(self)
 	if self.Data.Initialized then
 		return "Config already initialized", Vector2.new(600, 800)
 	end
@@ -259,7 +259,9 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 	self.Data.Chassis:SetAttribute("Key", self.Data.Key)
 	CollectionService:AddTag(self.Data.Chassis, "Overlayed")
 
-	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+	self.Data.Model.PrimaryPart.Position = (self.Data.Model.WheelFrontLeft.Wheel.Position - self.Data.Model.WheelBackRight.Wheel.Position)/2
+
+	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local NewRim = self.Data.Chassis[v.Name].Rim:Clone()
 			NewRim.Size = Vector3.new(v.Wheel.Size.X, v.Rim.Size.Y, v.Rim.Size.Z)
@@ -287,7 +289,7 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 		end
 	end
 
-	for i: number, v: Instance in next, self.Data.Model:GetDescendants() do
+	for i, v in next, self.Data.Model:GetDescendants() do
 		if v:IsA("Weld") then
 			v:Destroy()
 		end
@@ -320,15 +322,15 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 	return "Config initialized", Vector2.new(0, 900)
 end
 
-Importer.Data.ImportPacket.Update = function(self: table)
+Importer.Data.ImportPacket.Update = function(self)
 	local HasPlayer = self.Data.Chassis:FindFirstChild("Seat") and self.Data.Chassis.Seat:FindFirstChild("PlayerName") and self.Data.Chassis.Seat.PlayerName.Value == Players.LocalPlayer.Name
 
-	for i: number, v: Instance in next, self.Data.Chassis:GetDescendants() do
+	for i, v in next, self.Data.Chassis:GetDescendants() do
 		if v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel") then
 			v.Transparency = 1
 		end
 	end
-	for i: number, v:Instance in next, self.Data.Model:GetDescendants() do
+	for i, v in next, self.Data.Model:GetDescendants() do
 		if v:IsA("BasePart") then
 			v.CanCollide = false
 		end
@@ -341,7 +343,7 @@ Importer.Data.ImportPacket.Update = function(self: table)
 	end
 
 	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
-	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
 			local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
@@ -354,7 +356,7 @@ Importer.Data.ImportPacket.Update = function(self: table)
 		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 	end
 
-	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
 			local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
@@ -372,7 +374,7 @@ Importer.Data.ImportPacket.Update = function(self: table)
 	end
 end
 
-Env.MCreateNewSave = function(Data: string | number)
+Env.MCreateNewSave = function(Data)
 	local Packet = Importer.Data.ImportPacket:NewPacket(syn and Data or MarketplaceService:GetProductInfo(Data).Name, Data)
 
 	return Packet
@@ -472,6 +474,12 @@ Env.MCreateUi = function(Name: string)
     Swift.Name = "Swift"
     Swift.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     Swift.Parent = CoreGui
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if input.KeyCode == Enum.KeyCode.RightShift then
+            Swift.Enabled = not Swift.Enabled
+        end
+    end)
 
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(0, 572, 0, 332)
@@ -2077,7 +2085,7 @@ Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
 	return Label
 end
 
-Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Section
+Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	local Section = Channel.CreateSection("Manage Config")
 
 	CreateUi.Functions.CreateSelectedConfigName(Section)
@@ -2138,7 +2146,7 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 	return Dropdown
 end
 
-Env.CreateConfigSettingsSection = function(Channel: table) -- Config Settings Section
+Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 	local Section = Channel.CreateSection("Config Settings")
 
 	CreateUi.Functions.CreateSelectModelDropdown(Section)
@@ -2160,7 +2168,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 				}
 			})
 		end, {Name = "Selected Model", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
-		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height: number)
+		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
@@ -2176,7 +2184,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
 
-Env.CreateConfigListSection = function(Channel: table) -- Config List Section
+Env.CreateConfigListSection = function(Channel) -- Config List Section
 	local Section = Channel.CreateSection("Configs")
 
 	CreateUi.Data.GlobalUi.ConfigListSection = Section
@@ -2184,8 +2192,8 @@ Env.CreateConfigListSection = function(Channel: table) -- Config List Section
 	return Section
 end
 
-Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
-	local TextBox = Section.CreateTextBox(function(Data: string | number)
+Env.CreateIdTextBox = function(Category, Section) -- Id TextBox
+	local TextBox = Section.CreateTextBox(function(Data)
 		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
 
 		local Notif = Category.CreateNotif("Model Check", Offset, Output, {
@@ -2208,16 +2216,16 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 	return TextBox
 end
 
-Env.CreateNewConfigSection = function(Category: table, Channel: table) -- New Config Section
-	local Section: table = Channel.CreateSection("New Config")
+Env.CreateNewConfigSection = function(Category, Channel) -- New Config Section
+	local Section = Channel.CreateSection("New Config")
 
 	CreateUi.Functions.CreateIdTextBox(Category, Section)
 
 	return Section
 end
 
-Env.CreateImportChannel = function(Category: table) -- Importer Channel
-	local Channel: table = Category.CreateChannel("Importer")
+Env.CreateImportChannel = function(Category) -- Importer Channel
+	local Channel = Category.CreateChannel("Importer")
 
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
 	CreateUi.Functions.CreateConfigListSection(Channel)
@@ -2227,13 +2235,13 @@ Env.CreateImportChannel = function(Category: table) -- Importer Channel
 	return Channel
 end
 
-Env.CreateInitializedChannel = function(Category: table) -- Initialized Channel
+Env.CreateInitializedChannel = function(Category) -- Initialized Channel
 	local Channel = Category.CreateChannel("Initialized")
 
 	return Channel
 end
 
-Env.CreateImportCategory = function(Guild: table) -- Importer Category
+Env.CreateImportCategory = function(Guild) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
@@ -2242,13 +2250,13 @@ Env.CreateImportCategory = function(Guild: table) -- Importer Category
 	return Category
 end
 
-Env.CreatePacketChannel = function(Category: table) -- Packet Channel
+Env.CreatePacketChannel = function(Category) -- Packet Channel
 	local CreateChannel = Category.CreateChannel("Packet")
 
 	return CreateChannel
 end
 
-Env.CreateVehcileCategory = function(Guild: table) -- Vehicle Category
+Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
 	local Category = Guild.CreateCategory("Vehicle")
 
 	CreateUi.Functions.CreatePacketChannel(Category)
@@ -2256,7 +2264,7 @@ Env.CreateVehcileCategory = function(Guild: table) -- Vehicle Category
 	return Category
 end
 
-Env.CreateImporterGuild = function(Ui: table) -- Importer Guild
+Env.CreateImporterGuild = function(Ui) -- Importer Guild
 	local Guild = Ui.CreateGuild("Importer", getsynasset and getsynasset("jailbreak.png") or "", getsynasset and getsynasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)
@@ -2276,15 +2284,13 @@ end
 return CreateUi.Module
 end,
 }
---!nocheck
-
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
 local Loaded = {}
 
-import = function(dir: string)
+import = function(dir)
     if not Loaded[dir] then
         Loaded[dir] = Vehicle_Importer[dir]()
     end

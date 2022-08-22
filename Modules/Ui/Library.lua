@@ -90,6 +90,12 @@ Env.MCreateUi = function(Name: string)
     Swift.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     Swift.Parent = CoreGui
 
+    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if input.KeyCode == Enum.KeyCode.RightShift then
+            Swift.Enabled = not Swift.Enabled
+        end
+    end)
+
     local Frame = Instance.new("Frame")
     Frame.Size = UDim2.new(0, 572, 0, 332)
     Frame.Position = UDim2.new(0.2740916, 0, 0.1403888, 0)

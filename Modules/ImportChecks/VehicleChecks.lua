@@ -55,8 +55,8 @@ local MMeta = {
 setmetatable(VehicleChecks.Functions, LMeta)
 setmetatable(VehicleChecks.Module.Functions, MMeta)
 
-Env.MRunCheck = function(Data: number | string)
-	local Success: boolean, Response: Instance | string = pcall(function()
+Env.MRunCheck = function(Data)
+	local Success, Response = pcall(function()
 		return game:GetObjects(syn and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
 	end)
 

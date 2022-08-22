@@ -49,7 +49,7 @@ Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
 	return Label
 end
 
-Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Section
+Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	local Section = Channel.CreateSection("Manage Config")
 
 	CreateUi.Functions.CreateSelectedConfigName(Section)
@@ -110,7 +110,7 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 	return Dropdown
 end
 
-Env.CreateConfigSettingsSection = function(Channel: table) -- Config Settings Section
+Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 	local Section = Channel.CreateSection("Config Settings")
 
 	CreateUi.Functions.CreateSelectModelDropdown(Section)
@@ -132,7 +132,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 				}
 			})
 		end, {Name = "Selected Model", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
-		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height: number)
+		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
@@ -148,7 +148,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
 
-Env.CreateConfigListSection = function(Channel: table) -- Config List Section
+Env.CreateConfigListSection = function(Channel) -- Config List Section
 	local Section = Channel.CreateSection("Configs")
 
 	CreateUi.Data.GlobalUi.ConfigListSection = Section
@@ -156,8 +156,8 @@ Env.CreateConfigListSection = function(Channel: table) -- Config List Section
 	return Section
 end
 
-Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
-	local TextBox = Section.CreateTextBox(function(Data: string | number)
+Env.CreateIdTextBox = function(Category, Section) -- Id TextBox
+	local TextBox = Section.CreateTextBox(function(Data)
 		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
 
 		local Notif = Category.CreateNotif("Model Check", Offset, Output, {
@@ -180,16 +180,16 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 	return TextBox
 end
 
-Env.CreateNewConfigSection = function(Category: table, Channel: table) -- New Config Section
-	local Section: table = Channel.CreateSection("New Config")
+Env.CreateNewConfigSection = function(Category, Channel) -- New Config Section
+	local Section = Channel.CreateSection("New Config")
 
 	CreateUi.Functions.CreateIdTextBox(Category, Section)
 
 	return Section
 end
 
-Env.CreateImportChannel = function(Category: table) -- Importer Channel
-	local Channel: table = Category.CreateChannel("Importer")
+Env.CreateImportChannel = function(Category) -- Importer Channel
+	local Channel = Category.CreateChannel("Importer")
 
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
 	CreateUi.Functions.CreateConfigListSection(Channel)
@@ -199,13 +199,13 @@ Env.CreateImportChannel = function(Category: table) -- Importer Channel
 	return Channel
 end
 
-Env.CreateInitializedChannel = function(Category: table) -- Initialized Channel
+Env.CreateInitializedChannel = function(Category) -- Initialized Channel
 	local Channel = Category.CreateChannel("Initialized")
 
 	return Channel
 end
 
-Env.CreateImportCategory = function(Guild: table) -- Importer Category
+Env.CreateImportCategory = function(Guild) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
@@ -214,13 +214,13 @@ Env.CreateImportCategory = function(Guild: table) -- Importer Category
 	return Category
 end
 
-Env.CreatePacketChannel = function(Category: table) -- Packet Channel
+Env.CreatePacketChannel = function(Category) -- Packet Channel
 	local CreateChannel = Category.CreateChannel("Packet")
 
 	return CreateChannel
 end
 
-Env.CreateVehcileCategory = function(Guild: table) -- Vehicle Category
+Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
 	local Category = Guild.CreateCategory("Vehicle")
 
 	CreateUi.Functions.CreatePacketChannel(Category)
@@ -228,7 +228,7 @@ Env.CreateVehcileCategory = function(Guild: table) -- Vehicle Category
 	return Category
 end
 
-Env.CreateImporterGuild = function(Ui: table) -- Importer Guild
+Env.CreateImporterGuild = function(Ui) -- Importer Guild
 	local Guild = Ui.CreateGuild("Importer", getsynasset and getsynasset("jailbreak.png") or "", getsynasset and getsynasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)

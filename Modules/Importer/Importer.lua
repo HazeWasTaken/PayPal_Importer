@@ -96,9 +96,9 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Env.GetNearestThrust = function(Wheel: Model)
-	local Thrust: BasePart, Distance: number = nil, 9e9
-	for i: number, v: Instance in next, Wheel.Parent:GetChildren() do
+Env.GetNearestThrust = function(Wheel)
+	local Thrust, Distance = nil, 9e9
+	for i, v in next, Wheel.Parent:GetChildren() do
 		if v.Name == "Thrust" then
 			local Magnitude = math.abs((Wheel.Wheel.Position - v.Position).Magnitude)
 			if Distance > Magnitude then
@@ -109,7 +109,7 @@ Env.GetNearestThrust = function(Wheel: Model)
 	return Thrust, Distance
 end
 
-Importer.Data.ImportPacket.NewPacket = function(self: table, Name: string, Data: Instance)
+Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
 	local Packet = {
 		Settings = {
 			Name = Name,
@@ -136,7 +136,7 @@ Importer.Data.ImportPacket.NewPacket = function(self: table, Name: string, Data:
 	return Packet
 end
 
-Importer.Data.ImportPacket.UpdateModel = function(self: table, Model: Instance)
+Importer.Data.ImportPacket.UpdateModel = function(self, Model)
 	if self.Data.Initialized then
 		return "This config has already been initialized, you can not update it's base model\nPlease clone the config if you would like to overlay it over another model", Vector2.new(600, 800)
 	end
@@ -144,17 +144,17 @@ Importer.Data.ImportPacket.UpdateModel = function(self: table, Model: Instance)
 	return "Model Updated", Vector2.new(0, 900)
 end
 
-Importer.Data.ImportPacket.UpdateHeight = function(self: table, Height: number)
+Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 	self.Settings.Height = Height
 end
 
-Importer.Data.ImportPacket.LoadModel = function(self: table)
-    local Model: Instance = game:GetObjects(syn and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
+Importer.Data.ImportPacket.LoadModel = function(self)
+    local Model = game:GetObjects(syn and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
 
     return Model
 end
 
-Importer.Data.ImportPacket.InitPacket = function(self: table)
+Importer.Data.ImportPacket.InitPacket = function(self)
 	if self.Data.Initialized then
 		return "Config already initialized", Vector2.new(600, 800)
 	end
@@ -170,7 +170,10 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 	self.Data.Chassis:SetAttribute("Key", self.Data.Key)
 	CollectionService:AddTag(self.Data.Chassis, "Overlayed")
 
-	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+	local WheelDiff = self.Data.Model.WheelFrontLeft.Wheel.Position - self.Data.Model.WheelBackRight.Wheel.Position
+	self.Data.Model.PrimaryPart.Position = WheelDiff.Unit * (WheelDiff.Magnitude/2) + self.Data.Model.WheelBackRight.Wheel.Position
+
+	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local NewRim = self.Data.Chassis[v.Name].Rim:Clone()
 			NewRim.Size = Vector3.new(v.Wheel.Size.X, v.Rim.Size.Y, v.Rim.Size.Z)
@@ -198,7 +201,7 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 		end
 	end
 
-	for i: number, v: Instance in next, self.Data.Model:GetDescendants() do
+	for i, v in next, self.Data.Model:GetDescendants() do
 		if v:IsA("Weld") then
 			v:Destroy()
 		end
@@ -231,15 +234,15 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 	return "Config initialized", Vector2.new(0, 900)
 end
 
-Importer.Data.ImportPacket.Update = function(self: table)
+Importer.Data.ImportPacket.Update = function(self)
 	local HasPlayer = self.Data.Chassis:FindFirstChild("Seat") and self.Data.Chassis.Seat:FindFirstChild("PlayerName") and self.Data.Chassis.Seat.PlayerName.Value == Players.LocalPlayer.Name
 
-	for i: number, v: Instance in next, self.Data.Chassis:GetDescendants() do
+	for i, v in next, self.Data.Chassis:GetDescendants() do
 		if v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel") then
 			v.Transparency = 1
 		end
 	end
-	for i: number, v:Instance in next, self.Data.Model:GetDescendants() do
+	for i, v in next, self.Data.Model:GetDescendants() do
 		if v:IsA("BasePart") then
 			v.CanCollide = false
 		end
@@ -252,7 +255,7 @@ Importer.Data.ImportPacket.Update = function(self: table)
 	end
 
 	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
-	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
 			local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
@@ -265,7 +268,7 @@ Importer.Data.ImportPacket.Update = function(self: table)
 		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 	end
 
-	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
 			local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
@@ -283,7 +286,7 @@ Importer.Data.ImportPacket.Update = function(self: table)
 	end
 end
 
-Env.MCreateNewSave = function(Data: string | number)
+Env.MCreateNewSave = function(Data)
 	local Packet = Importer.Data.ImportPacket:NewPacket(syn and Data or MarketplaceService:GetProductInfo(Data).Name, Data)
 
 	return Packet

@@ -1,12 +1,10 @@
---!nocheck
-
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
 local Loaded = {}
 
-import = function(dir: string)
+import = function(dir)
     if not Loaded[dir] then
         Loaded[dir] = Vehicle_Importer[dir]()
     end
