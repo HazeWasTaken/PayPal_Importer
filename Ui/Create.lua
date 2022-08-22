@@ -175,7 +175,7 @@ Env.CreateIdTextBox = function(Category, Section) -- Id TextBox
 				Callback = function() end
 			}
 		})
-	end, {Name = "Model " .. (syn and "File Name" or "Id"), Text = (syn and "File Name" or "Id"), NumOnly = not syn})
+	end, {Name = "Model " .. (getsynasset and "File Name" or "Id"), Text = (getsynasset and "File Name" or "Id"), NumOnly = not getsynasset})
 
 	return TextBox
 end

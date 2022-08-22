@@ -149,7 +149,7 @@ Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
-    local Model = game:GetObjects(syn and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
+    local Model = game:GetObjects(getsynasset and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
 
     return Model
 end
@@ -287,7 +287,7 @@ Importer.Data.ImportPacket.Update = function(self)
 end
 
 Env.MCreateNewSave = function(Data)
-	local Packet = Importer.Data.ImportPacket:NewPacket(syn and Data or MarketplaceService:GetProductInfo(Data).Name, Data)
+	local Packet = Importer.Data.ImportPacket:NewPacket(getsynasset and Data or MarketplaceService:GetProductInfo(Data).Name, Data)
 
 	return Packet
 end

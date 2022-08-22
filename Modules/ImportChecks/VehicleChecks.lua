@@ -57,7 +57,7 @@ setmetatable(VehicleChecks.Module.Functions, MMeta)
 
 Env.MRunCheck = function(Data)
 	local Success, Response = pcall(function()
-		return game:GetObjects(syn and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
+		return game:GetObjects(getsynasset and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
 	end)
 
 	if not Success or not Response then
