@@ -213,6 +213,13 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 		end
 	end
 
+	for i,v in next, self.Data.Chassis.Model:GetChildren() do
+		if v.Name == "Nitrous" then
+			v.Fire.Transparency = NumberSequence.new(1)
+			v.Smoke.Transparency = NumberSequence.new(1)
+		end
+	end
+
 	self.Data.Model.Parent = Workspace
 
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame + Vector3.new(0, self.Settings.Height, 0)
@@ -266,6 +273,19 @@ Importer.Data.ImportPacket.Update = function(self)
 
 	if self.Data.Chassis.Model:FindFirstChild("SteeringWheel") then
 		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
+	end
+
+	for i,v in next, self.Data.Model.Model:GetChildren() do
+		if v.Name == "Brakelights" then
+			v.Material = self.Data.Chassis.Model.Brakelights.Material
+		end
+		if v.Name == "Headlights" then
+			v.Material = self.Data.Chassis.Model.Headlights.Material
+		end
+		if v.Name == "Nitrous" then
+			v.Fire.Enabled = self.Data.Chassis.Model.Nitrous.Fire.Enabled
+			v.Smoke.Enabled = self.Data.Chassis.Model.Nitrous.Smoke.Enabled
+		end
 	end
 
 	for i, v in next, self.Data.Model:GetChildren() do

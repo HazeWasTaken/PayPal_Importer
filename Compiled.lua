@@ -58,7 +58,7 @@ setmetatable(VehicleChecks.Module.Functions, MMeta)
 
 Env.MRunCheck = function(Data)
 	local Success, Response = pcall(function()
-		return game:GetObjects(syn and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
+		return game:GetObjects(getsynasset and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
 	end)
 
 	if not Success or not Response then
@@ -238,7 +238,7 @@ Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
-    local Model = game:GetObjects(syn and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
+    local Model = game:GetObjects(getsynasset and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
 
     return Model
 end
@@ -259,7 +259,8 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 	self.Data.Chassis:SetAttribute("Key", self.Data.Key)
 	CollectionService:AddTag(self.Data.Chassis, "Overlayed")
 
-	self.Data.Model.PrimaryPart.Position = (self.Data.Model.WheelFrontLeft.Wheel.Position - self.Data.Model.WheelBackRight.Wheel.Position)/2
+	local WheelDiff = self.Data.Model.WheelFrontLeft.Wheel.Position - self.Data.Model.WheelBackRight.Wheel.Position
+	self.Data.Model.PrimaryPart.Position = WheelDiff.Unit * (WheelDiff.Magnitude/2) + self.Data.Model.WheelBackRight.Wheel.Position
 
 	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
@@ -298,6 +299,13 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			if v ~= self.Data.Model.PrimaryPart and not table.find(self.Data.Calculated, v) then
 				self.Data.LatchCFrames[v] = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.CFrame)
 			end
+		end
+	end
+
+	for i,v in next, self.Data.Chassis.Model:GetChildren() do
+		if v.Name == "Nitrous" then
+			v.Fire.Transparency = NumberSequence.new(1)
+			v.Smoke.Transparency = NumberSequence.new(1)
 		end
 	end
 
@@ -356,6 +364,19 @@ Importer.Data.ImportPacket.Update = function(self)
 		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 	end
 
+	for i,v in next, self.Data.Model.Model:GetChildren() do
+		if v.Name == "Brakelights" then
+			v.Material = self.Data.Chassis.Model.Brakelights.Material
+		end
+		if v.Name == "Headlights" then
+			v.Material = self.Data.Chassis.Model.Headlights.Material
+		end
+		if v.Name == "Nitrous" then
+			v.Fire.Enabled = self.Data.Chassis.Model.Nitrous.Fire.Enabled
+			v.Smoke.Enabled = self.Data.Chassis.Model.Nitrous.Smoke.Enabled
+		end
+	end
+
 	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
@@ -375,7 +396,7 @@ Importer.Data.ImportPacket.Update = function(self)
 end
 
 Env.MCreateNewSave = function(Data)
-	local Packet = Importer.Data.ImportPacket:NewPacket(syn and Data or MarketplaceService:GetProductInfo(Data).Name, Data)
+	local Packet = Importer.Data.ImportPacket:NewPacket(getsynasset and Data or MarketplaceService:GetProductInfo(Data).Name, Data)
 
 	return Packet
 end
@@ -2211,7 +2232,7 @@ Env.CreateIdTextBox = function(Category, Section) -- Id TextBox
 				Callback = function() end
 			}
 		})
-	end, {Name = "Model " .. (syn and "File Name" or "Id"), Text = (syn and "File Name" or "Id"), NumOnly = not syn})
+	end, {Name = "Model " .. (getsynasset and "File Name" or "Id"), Text = (getsynasset and "File Name" or "Id"), NumOnly = not getsynasset})
 
 	return TextBox
 end
