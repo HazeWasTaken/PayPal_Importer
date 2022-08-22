@@ -11,7 +11,8 @@ local CreateUi, Env = {
 	},
 	Data = {
 		GlobalUi = {
-			Manage = {}
+			Manage = {},
+			Settings = {}
 		}
 	},
 	Functions = {}
@@ -40,12 +41,37 @@ Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	return Button
 end
 
-Env.CreateSelectModelDropdown = function(Section)
-	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Selected Model", Options = {}}), {}
+Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
+	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
+
+	CreateUi.Data.GlobalUi.Manage.Name = Label
+
+	return Label
+end
+
+Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Section
+	local Section = Channel.CreateSection("Manage Config")
+
+	CreateUi.Functions.CreateSelectedConfigName(Section)
+	CreateUi.Functions.CreateInitConfigButton(Section)
+
+	return Section
+end
+
+Env.CreateModelHeightTextBox = function(Section)
+	local TextBox = Section.CreateTextBox(function() end, {Name = "Height ", Text = "0",NumOnly = true})
+
+	CreateUi.Data.GlobalUi.Settings.Height = TextBox
+
+	return TextBox
+end
+
+Env.CreateSelectModelDropdown = function(Section) -- Selected Model
+	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Selected Model", AltText = "", Options = {}}), {}
 
 	AddVehicle = function(Vehicle)
 		local Seat = Vehicle:FindFirstChild("Seat")
-		if Seat and Seat.PlayerName then
+		if Seat and Seat:FindFirstChild("PlayerName") then
 			if Connections[Seat] then
 				Connections[Seat]:Disconnect()
 			end
@@ -53,14 +79,15 @@ Env.CreateSelectModelDropdown = function(Section)
 				ReConstruct()
 			end)
 		end
+		local PlayerName = Seat and Seat:FindFirstChild("PlayerName") and Seat.PlayerName.Value or ""
 		Dropdown.AddOption({
-			Name = Vehicle.Name .. " : ".. (Seat and Seat.PlayerName and Seat.PlayerName.Value or ""),
+			Name = Vehicle.Name .. (PlayerName ~= "" and " : ".. PlayerName or ""),
 			Data = Vehicle,
 			Enter = function()
-				Workspace.CurrentCamera.CameraSubject = Vehicle.Camera
+				Vehicle.BoundingBox.Transparency = 0
 			end,
 			Leave = function()
-				Workspace.CurrentCamera.CameraSubject = Players.LocalPlayer.Character.Humanoid
+				Vehicle.BoundingBox.Transparency = 1
 			end
 		})
 	end
@@ -78,39 +105,47 @@ Env.CreateSelectModelDropdown = function(Section)
 	Workspace.Vehicles.ChildAdded:Connect(ReConstruct)
 	Workspace.Vehicles.ChildRemoved:Connect(ReConstruct)
 
-	CreateUi.Data.GlobalUi.Manage.Models = Dropdown
+	CreateUi.Data.GlobalUi.Settings.Models = Dropdown
 
 	return Dropdown
 end
 
-Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
-	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
+Env.CreateConfigSettingsSection = function(Channel: table) -- Config Settings Section
+	local Section = Channel.CreateSection("Config Settings")
 
-	CreateUi.Data.GlobalUi.Manage.Name = Label
-
-	return Label
-end
-
-Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Section
-	local Section = Channel.CreateSection("Manage Config")
-
-	CreateUi.Functions.CreateSelectedConfigName(Section)
 	CreateUi.Functions.CreateSelectModelDropdown(Section)
-	CreateUi.Functions.CreateInitConfigButton(Section)
+	CreateUi.Functions.CreateModelHeightTextBox(Section)
 
 	return Section
 end
 
-Env.CreateConfigListElement = function(Packet) -- Config List Element
+Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
-		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name})
-		CreateUi.Data.GlobalUi.Manage.Models.Update(function(Model)
-			Packet:UpdateModel(Model)
-		end, {Name = "Selected Model"})
+		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name .. " | " ..Packet.Data.Key})
+		CreateUi.Data.GlobalUi.Settings.Models.Update(function(Model)
+			local Output, Offset = Packet:UpdateModel(Model)
+			local Notif = Category.CreateNotif("Model Update", Offset, Output, {
+				{
+					Text = "Ok",
+					Close = true,
+					Callback = function() end
+				}
+			})
+		end, {Name = "Selected Model", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
+		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height: number)
+			Packet:UpdateHeight(Height)
+		end, {Text = Packet.Settings.Height})
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
-			Packet:InitPacket()
+			local Output, Offset =  Packet:InitPacket()
+			local Notif = Category.CreateNotif("Initialization", Offset, Output, {
+				{
+					Text = "Ok",
+					Close = true,
+					Callback = function() end
+				}
+			})
 		end,{Name = "Initialize"})
-	end, {Name = Packet.Settings.Name})
+	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
 
 Env.CreateConfigListSection = function(Channel: table) -- Config List Section
@@ -131,7 +166,7 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 				Close = true,
 				Callback = function()
 					local Packet = Importer.Functions.CreateNewSave(Data)
-					CreateUi.Functions.CreateConfigListElement(Packet)
+					CreateUi.Functions.CreateConfigListElement(Category, Packet)
 				end
 			},
 			{
@@ -159,6 +194,7 @@ Env.CreateImportChannel = function(Category: table) -- Importer Channel
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
 	CreateUi.Functions.CreateConfigListSection(Channel)
 	CreateUi.Functions.CreateManageConfigSection(Channel)
+	CreateUi.Functions.CreateConfigSettingsSection(Channel)
 
 	return Channel
 end

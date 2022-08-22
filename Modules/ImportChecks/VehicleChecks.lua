@@ -20,10 +20,19 @@ local VehicleChecks, Env = {
 			Camera = {
 				Required = true,
 			},
+			InsideCamera = {
+				Required = true
+			},
 			Engine = {
 				Required = true,
 			},
 			Seat = {
+				Required = true,
+			},
+			Steer = {
+				Required = true,
+			},
+			SteeringWheel = {
 				Required = true,
 			}
 		}
@@ -71,7 +80,7 @@ Env.MRunCheck = function(Data: number | string)
 		end
 	end
 
-	return ((String:len() > 0 and String) or "Model is valid"), Vector2.new(300, 300)
+	return ((String:len() > 0 and String) or "Model is valid"), Vector2.new(0, 900)
 end
 
 return VehicleChecks.Module

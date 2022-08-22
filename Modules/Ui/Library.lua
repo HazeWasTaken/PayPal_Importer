@@ -542,15 +542,13 @@ Env.MCreateUi = function(Name: string)
                     Content.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 4)
                 end)
 
-                Input1.FocusLost:Connect(function(enterPressed, inputThatCausedFocusLoss)
-                    for i,v in next, Sections do
-                        v.Visible = false
-                    end
+                RunService.Heartbeat:Connect(function()
                     for i,v in next, Inputs do
-                        if string.find(v.Name, Input1.Text) then
+                        if string.find(v.Name:lower(), Input1.Text:lower()) then
                             v.Parent.Visible = true
                             v.Visible = true
                         else
+                            v.Parent.Visible = false
                             v.Visible = false
                         end
                     end
@@ -864,11 +862,11 @@ Env.MCreateUi = function(Name: string)
                         Dropdown.Font = Enum.Font.Gotham
                         Dropdown.Parent = Section
                         table.insert(Inputs, Dropdown)
-                        
+
                         local UICorner = Instance.new("UICorner")
                         UICorner.CornerRadius = UDim.new(0, 5)
                         UICorner.Parent = Dropdown
-                        
+
                         local DropdownName = Instance.new("TextLabel")
                         DropdownName.Name = "DropdownName"
                         DropdownName.Size = UDim2.new(0, 345, 0, 26)
@@ -879,11 +877,11 @@ Env.MCreateUi = function(Name: string)
                         DropdownName.TextSize = 11
                         DropdownName.RichText = true
                         DropdownName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        DropdownName.Text = Data.Name
+                        DropdownName.Text = Data.Name .. " : " .. Data.AltText
                         DropdownName.Font = Enum.Font.Gotham
                         DropdownName.TextXAlignment = Enum.TextXAlignment.Left
                         DropdownName.Parent = Dropdown
-                        
+
                         local DropdownIcon = Instance.new("ImageLabel")
                         DropdownIcon.Name = "DropdownIcon"
                         DropdownIcon.Size = UDim2.new(0, 16, 0, 16)
@@ -965,9 +963,9 @@ Env.MCreateUi = function(Name: string)
                         Input.TextXAlignment = Enum.TextXAlignment.Left
                         Input.Parent = Frame
 
-                        Input.FocusLost:Connect(function(enterPressed, inputThatCausedFocusLoss)
+                        RunService.Heartbeat:Connect(function()
                             for i,v in next, Options_Instances do
-                                if string.find(v.Name, Input.Text) then
+                                if string.find(v.Name:lower(), Input.Text:lower()) then
                                     v.Visible = true
                                 else
                                     v.Visible = false
@@ -1014,87 +1012,9 @@ Env.MCreateUi = function(Name: string)
 
                         local DropdownLibrary = {}
 
-                        DropdownLibrary.AddOptions = function(Options)
-                            for i,v in next, Options do
-                                v = type(v) == "table" and rawget(v, "Name") and rawget(v, "Data") and v or {
-                                    Name = v,
-                                    Data = v
-                                }
-
-                                local Button = Instance.new("TextButton")
-                                Button.Name = v.Name
-                                Button.Size = UDim2.new(0, 367, 0, 26)
-                                Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-                                Button.AutoButtonColor = false
-                                Button.FontSize = Enum.FontSize.Size11
-                                Button.TextSize = 11
-                                Button.RichText = true
-                                Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-                                Button.Text = ""
-                                Button.Font = Enum.Font.Gotham
-                                Button.Parent = Content
-                                table.insert(Options_Instances, Button)
-
-                                local UICorner2 = Instance.new("UICorner")
-                                UICorner2.CornerRadius = UDim.new(0, 5)
-                                UICorner2.Parent = Button
-
-                                local ButtonName = Instance.new("TextLabel")
-                                ButtonName.Name = "ButtonName"
-                                ButtonName.Size = UDim2.new(0, 345, 0, 26)
-                                ButtonName.BackgroundTransparency = 1
-                                ButtonName.Position = UDim2.new(0.0208333, 0, 0, 0)
-                                ButtonName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                                ButtonName.FontSize = Enum.FontSize.Size11
-                                ButtonName.TextSize = 11
-                                ButtonName.RichText = true
-                                ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                                ButtonName.Text = v.Name
-                                ButtonName.Font = Enum.Font.Gotham
-                                ButtonName.TextXAlignment = Enum.TextXAlignment.Left
-                                ButtonName.Parent = Button
-
-                                local ButtonIcon = Instance.new("ImageLabel")
-                                ButtonIcon.Name = "ButtonIcon"
-                                ButtonIcon.Size = UDim2.new(0, 20, 0, 20)
-                                ButtonIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
-                                ButtonIcon.BackgroundTransparency = 1
-                                ButtonIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
-                                ButtonIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                                ButtonIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
-                                ButtonIcon.ImageRectOffset = Vector2.new(400, 0)
-                                ButtonIcon.ImageRectSize = Vector2.new(100, 100)
-                                ButtonIcon.Image = "rbxassetid://6764432293"
-                                ButtonIcon.Parent = Button
-
-                                Button.MouseEnter:Connect(function(x, y)
-                                    v.Enter()
-                                    TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
-                                end)
-
-                                Button.MouseLeave:Connect(function(x, y)
-                                    v.Leave()
-                                    TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
-                                end)
-
-                                Button.MouseButton1Down:Connect(function(x, y)
-                                    TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
-                                    task.wait(.126)
-                                    TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                    Callback(v.Data, v.Name)
-                                end)
-                            end
-                        end
-
-                        DropdownLibrary.ClearOptions = function()
-                            for i,v in next, Options_Instances do
-                                v:Destroy()
-                            end
-                        end
-
-                        DropdownLibrary.AddOption = function(Data)
+                        DropdownLibrary.AddOption = function(OptionData)
                             local Button = Instance.new("TextButton")
-                            Button.Name = Data.Name
+                            Button.Name = OptionData.Name
                             Button.Size = UDim2.new(0, 367, 0, 26)
                             Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
                             Button.AutoButtonColor = false
@@ -1121,7 +1041,7 @@ Env.MCreateUi = function(Name: string)
                             ButtonName.TextSize = 11
                             ButtonName.RichText = true
                             ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonName.Text = Data.Name
+                            ButtonName.Text = OptionData.Name
                             ButtonName.Font = Enum.Font.Gotham
                             ButtonName.TextXAlignment = Enum.TextXAlignment.Left
                             ButtonName.Parent = Button
@@ -1142,24 +1062,40 @@ Env.MCreateUi = function(Name: string)
                             Button.MouseEnter:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait()
-                                Data.Enter()
+                                OptionData.Enter()
                             end)
 
                             Button.MouseLeave:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
-                                Data.Leave()
+                                OptionData.Leave()
                             end)
 
                             Button.MouseButton1Down:Connect(function(x, y)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait(.126)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                Callback(Data.Data, Data.Name)
+                                Data.AltText = OptionData.Name
+                                DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                                Callback(OptionData.Data, OptionData.Name)
                             end)
                         end
 
+                        DropdownLibrary.AddOptions = function(Options)
+                            for i, v in next, Options do
+                                DropdownLibrary.AddOption(v)
+                            end
+                        end
+
+                        DropdownLibrary.ClearOptions = function()
+                            for i,v in next, Options_Instances do
+                                v:Destroy()
+                            end
+                        end
+
                         DropdownLibrary.Update = function(UpdateCallback, UpdateData)
-                            DropdownName.Text = UpdateData.Name or Data.Name
+                            Data.Name = UpdateData.Name or Data.Name
+                            Data.AltText = UpdateData.AltText or Data.AltText
+                            DropdownName.Text = Data.Name .. " : " .. Data.AltText
                             if UpdateData.Options then
                                 DropdownLibrary.ClearOptions()
                                 DropdownLibrary.AddOptions(UpdateData.Options)
@@ -1275,6 +1211,16 @@ Env.MCreateUi = function(Name: string)
                                 Callback(Input.Text)
                             end
                         end)
+
+                        local TextBoxLibrary = {}
+
+                        TextBoxLibrary.Update = function(UpdateCallback, UpdateData)
+                            Callback = UpdateCallback or Callback
+                            TextboxName.Text = UpdateData.Name or Data.Name
+                            Input.Text = UpdateData.Text or Data.Text
+                        end
+
+                        return TextBoxLibrary
                     end
 
                     InputLibrary.CreateSlider = function(Callback, Data: table)

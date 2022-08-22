@@ -21,10 +21,19 @@ local VehicleChecks, Env = {
 			Camera = {
 				Required = true,
 			},
+			InsideCamera = {
+				Required = true
+			},
 			Engine = {
 				Required = true,
 			},
 			Seat = {
+				Required = true,
+			},
+			Steer = {
+				Required = true,
+			},
+			SteeringWheel = {
 				Required = true,
 			}
 		}
@@ -72,14 +81,16 @@ Env.MRunCheck = function(Data: number | string)
 		end
 	end
 
-	return ((String:len() > 0 and String) or "Model is valid"), Vector2.new(300, 300)
+	return ((String:len() > 0 and String) or "Model is valid"), Vector2.new(0, 900)
 end
 
 return VehicleChecks.Module
 end,
 ['Modules/Importer/Importer.lua'] = function()
+local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -90,8 +101,9 @@ local Importer, Env = {
 		Data = {}
 	},
 	Data = {
+		AlexChassis = require(ReplicatedStorage.Module.AlexChassis),
         ImportPacket = {},
-		UpdatePackets = {}
+		Packets = {}
     },
 	Functions = {
         GetLocalVehiclePacket = require(ReplicatedStorage.Game.Vehicle).GetLocalVehiclePacket
@@ -113,18 +125,96 @@ local MMeta = {
 setmetatable(Importer.Functions, LMeta)
 setmetatable(Importer.Module.Functions, MMeta)
 
-Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
+local UpdateSteppedUpValues = debug.getupvalues(Importer.Data.AlexChassis.UpdateStepped)
+
+Importer.Data.AlexChassis.UpdateStepped = function(p58)
+	local t_Model_77 = p58.Model
+	if (p58.IK) then
+		local v501 = 0.6 * p58.RotY;
+		local v502 = v501;
+		p58.WeldSteer.C0 = UpdateSteppedUpValues[1](0, v501, 0);
+		local t_CFrame_78 = t_Model_77.Steer.CFrame;
+		local v503 = (t_Model_77.Steer.Size.X * 0.5) - 0.2;
+		if CollectionService:HasTag(t_Model_77, "Overlayed") then
+			local Steer = Importer.Data.Packets[t_Model_77:GetAttribute("Key")].Data.Model.Steer
+			t_CFrame_78 = Steer.CFrame
+			v503 = (Steer.Size.X * 0.5) - 0.2
+		end
+		local v504 = v503;
+		local v505 = p58.SteerOffset;
+		local t_SteerOffset_79 = v505;
+		local t_IK_80 = p58.IK;
+		local v506 = UpdateSteppedUpValues[2](v503, 0.1, 0);
+		if (v505) then
+			v506 = v506 + t_SteerOffset_79;
+		end
+		local v507 = UpdateSteppedUpValues[2](-v504, 0.1, 0);
+		if (t_SteerOffset_79) then
+			v507 = v507 + t_SteerOffset_79;
+		end
+		t_IK_80.RightArm = t_CFrame_78 * v506;
+		t_IK_80.LeftArm = t_CFrame_78 * v507;
+		t_IK_80.RightAngle = (-v502) - 0.6;
+		t_IK_80.LeftAngle = (-v502) + 0.6;
+		UpdateSteppedUpValues[3].Arms(t_IK_80);
+	end
+end
+
+Importer.Data.AlexChassis.LockCamera = function(p66)
+	assert(not p66.IsCameraLocked);
+	local l__InsideCamera__368 = p66.Model:FindFirstChild("InsideCamera");
+	if CollectionService:HasTag(p66.Model, "Overlayed") then
+		l__InsideCamera__368 = Importer.Data.Packets[p66.Model:GetAttribute("Key")].Data.Model.InsideCamera
+	end
+	if l__InsideCamera__368 == nil then
+		return false;
+	end;
+	p66.IsCameraLocked = true;
+	Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable;
+	p66.seatMaid.cameraLockRenderStepped = RunService.RenderStepped:Connect(function()
+		Workspace.CurrentCamera.CFrame = l__InsideCamera__368.CFrame;
+	end);
+	p66.seatMaid.cameraUnlock = function()
+		Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom;
+	end;
+end
+
+Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(function()
+	if Workspace.CurrentCamera.CameraSubject:IsDescendantOf(Workspace.Vehicles) and CollectionService:HasTag(Workspace.CurrentCamera.CameraSubject.Parent, "Overlayed") then
+		Workspace.CurrentCamera.CameraSubject = Importer.Data.Packets[Workspace.CurrentCamera.CameraSubject.Parent:GetAttribute("Key")].Data.Model.Camera
+	end
+end)
+
+Env.GetNearestThrust = function(Wheel: Model)
+	local Thrust: BasePart, Distance: number = nil, 9e9
+	for i: number, v: Instance in next, Wheel.Parent:GetChildren() do
+		if v.Name == "Thrust" then
+			local Magnitude = math.abs((Wheel.Wheel.Position - v.Position).Magnitude)
+			if Distance > Magnitude then
+				Thrust, Distance = v, Magnitude
+			end
+		end
+	end
+	return Thrust, Distance
+end
+
+Importer.Data.ImportPacket.NewPacket = function(self: table, Name: string, Data: Instance)
 	local Packet = {
 		Settings = {
 			Name = Name,
 			Data = Data,
-			Model = nil
+			Model = nil,
+			Height = 0
 		},
 		Data = {
+			Key = os.clock() .. string.char(math.random(1, 200)),
 			Initialized = false,
 			Calculated = {},
 			LatchCFrames = {},
-			RelativeWheels = {}
+			RelativeWheels = {},
+			RelativeThrust = {},
+			RelativeSteeringWheel = nil,
+			LargestWheelSize = 0
 		}
 	}
 
@@ -136,7 +226,15 @@ Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
 end
 
 Importer.Data.ImportPacket.UpdateModel = function(self: table, Model: Instance)
+	if self.Data.Initialized then
+		return "This config has already been initialized, you can not update it's base model\nPlease clone the config if you would like to overlay it over another model", Vector2.new(600, 800)
+	end
 	self.Settings.Model = Model
+	return "Model Updated", Vector2.new(0, 900)
+end
+
+Importer.Data.ImportPacket.UpdateHeight = function(self: table, Height: number)
+	self.Settings.Height = Height
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self: table)
@@ -147,20 +245,45 @@ end
 
 Importer.Data.ImportPacket.InitPacket = function(self: table)
 	if self.Data.Initialized then
-		return
+		return "Config already initialized", Vector2.new(600, 800)
+	end
+	if self.Settings.Model == nil or not self.Settings.Model:IsDescendantOf(Workspace.Vehicles) then
+		return "Base model does not exist", Vector2.new(600, 800)
 	end
 	self.Data.Initialized = true
 	self.Data.Model = self:LoadModel()
 	self.Data.Chassis = self.Settings.Model
 
+	Importer.Data.Packets[self.Data.Key] = self
+
+	self.Data.Chassis:SetAttribute("Key", self.Data.Key)
+	CollectionService:AddTag(self.Data.Chassis, "Overlayed")
+
 	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
+			local NewRim = self.Data.Chassis[v.Name].Rim:Clone()
+			NewRim.Size = Vector3.new(v.Wheel.Size.X, v.Rim.Size.Y, v.Rim.Size.Z)
+			NewRim.CFrame = v.Wheel.CFrame:ToWorldSpace(self.Data.Chassis[v.Name].Wheel.CFrame:ToObjectSpace(self.Data.Chassis[v.Name].Rim.CFrame))
+			v.Rim:Destroy()
+			NewRim.Parent = v
+
+			local NewWheel = self.Data.Chassis[v.Name].Wheel:Clone()
+			NewWheel.Size = v.Wheel.Size
+			NewWheel.CFrame = v.Rim.CFrame:ToWorldSpace(self.Data.Chassis[v.Name].Rim.CFrame:ToObjectSpace(self.Data.Chassis[v.Name].Wheel.CFrame))
+			v.Wheel:Destroy()
+			NewWheel.Parent = v
+
 			table.insert(self.Data.Calculated, v.Wheel)
 			table.insert(self.Data.Calculated, v.Rim)
 			self.Data.RelativeWheels[v.Name] = {
 				Rim = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Rim.CFrame),
 				Wheel = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Wheel.CFrame),
 			}
+
+			self.Data.LargestWheelSize = NewWheel.Size.Y > self.Data.LargestWheelSize and NewWheel.Size.Y/2 or self.Data.LargestWheelSize
+
+			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+			self.Data.RelativeThrust[Thrust] = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(Thrust.CFrame)
 		end
 	end
 
@@ -178,9 +301,8 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 
 	self.Data.Model.Parent = Workspace
 
-	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
+	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame + Vector3.new(0, self.Settings.Height, 0)
 	self.Data.Model.Seat.CFrame = self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.LatchCFrames[self.Data.Model.Seat])
-	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
 
 	local Update = RunService.Heartbeat:Connect(function()
 		self:Update()
@@ -190,9 +312,17 @@ Importer.Data.ImportPacket.InitPacket = function(self: table)
 			Update:Disconnect()
 		end
 	end)
+
+	if Workspace.CurrentCamera.CameraSubject:IsDescendantOf(Workspace.Vehicles) and CollectionService:HasTag(Workspace.CurrentCamera.CameraSubject.Parent, "Overlayed") then
+		Workspace.CurrentCamera.CameraSubject = Importer.Data.Packets[Workspace.CurrentCamera.CameraSubject.Parent:GetAttribute("Key")].Data.Model.Camera
+	end
+
+	return "Config initialized", Vector2.new(0, 900)
 end
 
 Importer.Data.ImportPacket.Update = function(self: table)
+	local HasPlayer = self.Data.Chassis:FindFirstChild("Seat") and self.Data.Chassis.Seat:FindFirstChild("PlayerName") and self.Data.Chassis.Seat.PlayerName.Value == Players.LocalPlayer.Name
+
 	for i: number, v: Instance in next, self.Data.Chassis:GetDescendants() do
 		if v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel") then
 			v.Transparency = 1
@@ -204,10 +334,24 @@ Importer.Data.ImportPacket.Update = function(self: table)
 		end
 	end
 
-	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame
+	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame  + Vector3.new(0, self.Settings.Height - (HasPlayer and self.Data.LargestWheelSize or 0), 0)
 
 	for i,v in next, self.Data.LatchCFrames do
 		i.CFrame = self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(v)
+	end
+
+	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
+	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
+		if string.find(v.Name, "Wheel") and v:IsA("Model") then
+			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+			local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
+			local WorldCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
+			Thrust.Position = HasPlayer and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
+		end
+	end
+
+	if self.Data.Chassis.Model:FindFirstChild("SteeringWheel") then
+		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 	end
 
 	for i: number, v: Instance in next, self.Data.Model:GetChildren() do
@@ -781,15 +925,13 @@ Env.MCreateUi = function(Name: string)
                     Content.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 4)
                 end)
 
-                Input1.FocusLost:Connect(function(enterPressed, inputThatCausedFocusLoss)
-                    for i,v in next, Sections do
-                        v.Visible = false
-                    end
+                RunService.Heartbeat:Connect(function()
                     for i,v in next, Inputs do
-                        if string.find(v.Name, Input1.Text) then
+                        if string.find(v.Name:lower(), Input1.Text:lower()) then
                             v.Parent.Visible = true
                             v.Visible = true
                         else
+                            v.Parent.Visible = false
                             v.Visible = false
                         end
                     end
@@ -1103,11 +1245,11 @@ Env.MCreateUi = function(Name: string)
                         Dropdown.Font = Enum.Font.Gotham
                         Dropdown.Parent = Section
                         table.insert(Inputs, Dropdown)
-                        
+
                         local UICorner = Instance.new("UICorner")
                         UICorner.CornerRadius = UDim.new(0, 5)
                         UICorner.Parent = Dropdown
-                        
+
                         local DropdownName = Instance.new("TextLabel")
                         DropdownName.Name = "DropdownName"
                         DropdownName.Size = UDim2.new(0, 345, 0, 26)
@@ -1118,11 +1260,11 @@ Env.MCreateUi = function(Name: string)
                         DropdownName.TextSize = 11
                         DropdownName.RichText = true
                         DropdownName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        DropdownName.Text = Data.Name
+                        DropdownName.Text = Data.Name .. " : " .. Data.AltText
                         DropdownName.Font = Enum.Font.Gotham
                         DropdownName.TextXAlignment = Enum.TextXAlignment.Left
                         DropdownName.Parent = Dropdown
-                        
+
                         local DropdownIcon = Instance.new("ImageLabel")
                         DropdownIcon.Name = "DropdownIcon"
                         DropdownIcon.Size = UDim2.new(0, 16, 0, 16)
@@ -1204,9 +1346,9 @@ Env.MCreateUi = function(Name: string)
                         Input.TextXAlignment = Enum.TextXAlignment.Left
                         Input.Parent = Frame
 
-                        Input.FocusLost:Connect(function(enterPressed, inputThatCausedFocusLoss)
+                        RunService.Heartbeat:Connect(function()
                             for i,v in next, Options_Instances do
-                                if string.find(v.Name, Input.Text) then
+                                if string.find(v.Name:lower(), Input.Text:lower()) then
                                     v.Visible = true
                                 else
                                     v.Visible = false
@@ -1253,87 +1395,9 @@ Env.MCreateUi = function(Name: string)
 
                         local DropdownLibrary = {}
 
-                        DropdownLibrary.AddOptions = function(Options)
-                            for i,v in next, Options do
-                                v = type(v) == "table" and rawget(v, "Name") and rawget(v, "Data") and v or {
-                                    Name = v,
-                                    Data = v
-                                }
-
-                                local Button = Instance.new("TextButton")
-                                Button.Name = v.Name
-                                Button.Size = UDim2.new(0, 367, 0, 26)
-                                Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-                                Button.AutoButtonColor = false
-                                Button.FontSize = Enum.FontSize.Size11
-                                Button.TextSize = 11
-                                Button.RichText = true
-                                Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-                                Button.Text = ""
-                                Button.Font = Enum.Font.Gotham
-                                Button.Parent = Content
-                                table.insert(Options_Instances, Button)
-
-                                local UICorner2 = Instance.new("UICorner")
-                                UICorner2.CornerRadius = UDim.new(0, 5)
-                                UICorner2.Parent = Button
-
-                                local ButtonName = Instance.new("TextLabel")
-                                ButtonName.Name = "ButtonName"
-                                ButtonName.Size = UDim2.new(0, 345, 0, 26)
-                                ButtonName.BackgroundTransparency = 1
-                                ButtonName.Position = UDim2.new(0.0208333, 0, 0, 0)
-                                ButtonName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                                ButtonName.FontSize = Enum.FontSize.Size11
-                                ButtonName.TextSize = 11
-                                ButtonName.RichText = true
-                                ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                                ButtonName.Text = v.Name
-                                ButtonName.Font = Enum.Font.Gotham
-                                ButtonName.TextXAlignment = Enum.TextXAlignment.Left
-                                ButtonName.Parent = Button
-
-                                local ButtonIcon = Instance.new("ImageLabel")
-                                ButtonIcon.Name = "ButtonIcon"
-                                ButtonIcon.Size = UDim2.new(0, 20, 0, 20)
-                                ButtonIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
-                                ButtonIcon.BackgroundTransparency = 1
-                                ButtonIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
-                                ButtonIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                                ButtonIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
-                                ButtonIcon.ImageRectOffset = Vector2.new(400, 0)
-                                ButtonIcon.ImageRectSize = Vector2.new(100, 100)
-                                ButtonIcon.Image = "rbxassetid://6764432293"
-                                ButtonIcon.Parent = Button
-
-                                Button.MouseEnter:Connect(function(x, y)
-                                    v.Enter()
-                                    TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
-                                end)
-
-                                Button.MouseLeave:Connect(function(x, y)
-                                    v.Leave()
-                                    TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
-                                end)
-
-                                Button.MouseButton1Down:Connect(function(x, y)
-                                    TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
-                                    task.wait(.126)
-                                    TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                    Callback(v.Data, v.Name)
-                                end)
-                            end
-                        end
-
-                        DropdownLibrary.ClearOptions = function()
-                            for i,v in next, Options_Instances do
-                                v:Destroy()
-                            end
-                        end
-
-                        DropdownLibrary.AddOption = function(Data)
+                        DropdownLibrary.AddOption = function(OptionData)
                             local Button = Instance.new("TextButton")
-                            Button.Name = Data.Name
+                            Button.Name = OptionData.Name
                             Button.Size = UDim2.new(0, 367, 0, 26)
                             Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
                             Button.AutoButtonColor = false
@@ -1360,7 +1424,7 @@ Env.MCreateUi = function(Name: string)
                             ButtonName.TextSize = 11
                             ButtonName.RichText = true
                             ButtonName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            ButtonName.Text = Data.Name
+                            ButtonName.Text = OptionData.Name
                             ButtonName.Font = Enum.Font.Gotham
                             ButtonName.TextXAlignment = Enum.TextXAlignment.Left
                             ButtonName.Parent = Button
@@ -1381,24 +1445,40 @@ Env.MCreateUi = function(Name: string)
                             Button.MouseEnter:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait()
-                                Data.Enter()
+                                OptionData.Enter()
                             end)
 
                             Button.MouseLeave:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
-                                Data.Leave()
+                                OptionData.Leave()
                             end)
 
                             Button.MouseButton1Down:Connect(function(x, y)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait(.126)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                Callback(Data.Data, Data.Name)
+                                Data.AltText = OptionData.Name
+                                DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                                Callback(OptionData.Data, OptionData.Name)
                             end)
                         end
 
+                        DropdownLibrary.AddOptions = function(Options)
+                            for i, v in next, Options do
+                                DropdownLibrary.AddOption(v)
+                            end
+                        end
+
+                        DropdownLibrary.ClearOptions = function()
+                            for i,v in next, Options_Instances do
+                                v:Destroy()
+                            end
+                        end
+
                         DropdownLibrary.Update = function(UpdateCallback, UpdateData)
-                            DropdownName.Text = UpdateData.Name or Data.Name
+                            Data.Name = UpdateData.Name or Data.Name
+                            Data.AltText = UpdateData.AltText or Data.AltText
+                            DropdownName.Text = Data.Name .. " : " .. Data.AltText
                             if UpdateData.Options then
                                 DropdownLibrary.ClearOptions()
                                 DropdownLibrary.AddOptions(UpdateData.Options)
@@ -1514,6 +1594,16 @@ Env.MCreateUi = function(Name: string)
                                 Callback(Input.Text)
                             end
                         end)
+
+                        local TextBoxLibrary = {}
+
+                        TextBoxLibrary.Update = function(UpdateCallback, UpdateData)
+                            Callback = UpdateCallback or Callback
+                            TextboxName.Text = UpdateData.Name or Data.Name
+                            Input.Text = UpdateData.Text or Data.Text
+                        end
+
+                        return TextBoxLibrary
                     end
 
                     InputLibrary.CreateSlider = function(Callback, Data: table)
@@ -1949,7 +2039,8 @@ local CreateUi, Env = {
 	},
 	Data = {
 		GlobalUi = {
-			Manage = {}
+			Manage = {},
+			Settings = {}
 		}
 	},
 	Functions = {}
@@ -1978,12 +2069,37 @@ Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	return Button
 end
 
-Env.CreateSelectModelDropdown = function(Section)
-	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Selected Model", Options = {}}), {}
+Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
+	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
+
+	CreateUi.Data.GlobalUi.Manage.Name = Label
+
+	return Label
+end
+
+Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Section
+	local Section = Channel.CreateSection("Manage Config")
+
+	CreateUi.Functions.CreateSelectedConfigName(Section)
+	CreateUi.Functions.CreateInitConfigButton(Section)
+
+	return Section
+end
+
+Env.CreateModelHeightTextBox = function(Section)
+	local TextBox = Section.CreateTextBox(function() end, {Name = "Height ", Text = "0",NumOnly = true})
+
+	CreateUi.Data.GlobalUi.Settings.Height = TextBox
+
+	return TextBox
+end
+
+Env.CreateSelectModelDropdown = function(Section) -- Selected Model
+	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Selected Model", AltText = "", Options = {}}), {}
 
 	AddVehicle = function(Vehicle)
 		local Seat = Vehicle:FindFirstChild("Seat")
-		if Seat and Seat.PlayerName then
+		if Seat and Seat:FindFirstChild("PlayerName") then
 			if Connections[Seat] then
 				Connections[Seat]:Disconnect()
 			end
@@ -1991,14 +2107,15 @@ Env.CreateSelectModelDropdown = function(Section)
 				ReConstruct()
 			end)
 		end
+		local PlayerName = Seat and Seat:FindFirstChild("PlayerName") and Seat.PlayerName.Value or ""
 		Dropdown.AddOption({
-			Name = Vehicle.Name .. " : ".. (Seat and Seat.PlayerName and Seat.PlayerName.Value or ""),
+			Name = Vehicle.Name .. (PlayerName ~= "" and " : ".. PlayerName or ""),
 			Data = Vehicle,
 			Enter = function()
-				Workspace.CurrentCamera.CameraSubject = Vehicle.Camera
+				Vehicle.BoundingBox.Transparency = 0
 			end,
 			Leave = function()
-				Workspace.CurrentCamera.CameraSubject = Players.LocalPlayer.Character.Humanoid
+				Vehicle.BoundingBox.Transparency = 1
 			end
 		})
 	end
@@ -2016,39 +2133,47 @@ Env.CreateSelectModelDropdown = function(Section)
 	Workspace.Vehicles.ChildAdded:Connect(ReConstruct)
 	Workspace.Vehicles.ChildRemoved:Connect(ReConstruct)
 
-	CreateUi.Data.GlobalUi.Manage.Models = Dropdown
+	CreateUi.Data.GlobalUi.Settings.Models = Dropdown
 
 	return Dropdown
 end
 
-Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
-	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
+Env.CreateConfigSettingsSection = function(Channel: table) -- Config Settings Section
+	local Section = Channel.CreateSection("Config Settings")
 
-	CreateUi.Data.GlobalUi.Manage.Name = Label
-
-	return Label
-end
-
-Env.CreateManageConfigSection = function(Channel: table) -- Manage Config Section
-	local Section = Channel.CreateSection("Manage Config")
-
-	CreateUi.Functions.CreateSelectedConfigName(Section)
 	CreateUi.Functions.CreateSelectModelDropdown(Section)
-	CreateUi.Functions.CreateInitConfigButton(Section)
+	CreateUi.Functions.CreateModelHeightTextBox(Section)
 
 	return Section
 end
 
-Env.CreateConfigListElement = function(Packet) -- Config List Element
+Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
-		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name})
-		CreateUi.Data.GlobalUi.Manage.Models.Update(function(Model)
-			Packet:UpdateModel(Model)
-		end, {Name = "Selected Model"})
+		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name .. " | " ..Packet.Data.Key})
+		CreateUi.Data.GlobalUi.Settings.Models.Update(function(Model)
+			local Output, Offset = Packet:UpdateModel(Model)
+			local Notif = Category.CreateNotif("Model Update", Offset, Output, {
+				{
+					Text = "Ok",
+					Close = true,
+					Callback = function() end
+				}
+			})
+		end, {Name = "Selected Model", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
+		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height: number)
+			Packet:UpdateHeight(Height)
+		end, {Text = Packet.Settings.Height})
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
-			Packet:InitPacket()
+			local Output, Offset =  Packet:InitPacket()
+			local Notif = Category.CreateNotif("Initialization", Offset, Output, {
+				{
+					Text = "Ok",
+					Close = true,
+					Callback = function() end
+				}
+			})
 		end,{Name = "Initialize"})
-	end, {Name = Packet.Settings.Name})
+	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
 
 Env.CreateConfigListSection = function(Channel: table) -- Config List Section
@@ -2069,7 +2194,7 @@ Env.CreateIdTextBox = function(Category: table, Section: table) -- Id TextBox
 				Close = true,
 				Callback = function()
 					local Packet = Importer.Functions.CreateNewSave(Data)
-					CreateUi.Functions.CreateConfigListElement(Packet)
+					CreateUi.Functions.CreateConfigListElement(Category, Packet)
 				end
 			},
 			{
@@ -2097,6 +2222,7 @@ Env.CreateImportChannel = function(Category: table) -- Importer Channel
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
 	CreateUi.Functions.CreateConfigListSection(Channel)
 	CreateUi.Functions.CreateManageConfigSection(Channel)
+	CreateUi.Functions.CreateConfigSettingsSection(Channel)
 
 	return Channel
 end
