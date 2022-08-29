@@ -1,7 +1,9 @@
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
+local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 local Importer = import("Modules/Importer/Importer.lua")
 
 local CreateUi, Env = {
@@ -11,6 +13,7 @@ local CreateUi, Env = {
 	},
 	Data = {
 		GlobalUi = {
+			ConfigList = {},
 			Manage = {},
 			Settings = {}
 		}
@@ -41,18 +44,9 @@ Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	return Button
 end
 
-Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
-	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
-
-	CreateUi.Data.GlobalUi.Manage.Name = Label
-
-	return Label
-end
-
 Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	local Section = Channel.CreateSection("Manage Config")
 
-	CreateUi.Functions.CreateSelectedConfigName(Section)
 	CreateUi.Functions.CreateInitConfigButton(Section)
 
 	return Section
@@ -67,19 +61,15 @@ Env.CreateModelHeightTextBox = function(Section)
 end
 
 Env.CreateSelectModelDropdown = function(Section) -- Selected Model
-	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Selected Model", AltText = "", Options = {}}), {}
+	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Base Chassis", AltText = "", Options = {}}), {}
 
 	AddVehicle = function(Vehicle)
 		local Seat = Vehicle:FindFirstChild("Seat")
-		if Seat and Seat:FindFirstChild("PlayerName") then
-			if Connections[Seat] then
-				Connections[Seat]:Disconnect()
-			end
-			Connections[Seat] = Seat.PlayerName:GetPropertyChangedSignal("Value"):Connect(function()
-				ReConstruct()
-			end)
-		end
+		local BoundingBox = Vehicle:FindFirstChild("BoundingBox")
 		local PlayerName = Seat and Seat:FindFirstChild("PlayerName") and Seat.PlayerName.Value or ""
+		if BoundingBox then
+			BoundingBox.Transparency = 1
+		end
 		Dropdown.AddOption({
 			Name = Vehicle.Name .. (PlayerName ~= "" and " : ".. PlayerName or ""),
 			Data = Vehicle,
@@ -98,12 +88,13 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 		for i,v in next, Workspace.Vehicles:GetChildren() do
 			AddVehicle(v)
 		end
+
+		task.wait(5)
+		ReConstruct()
 	end
-
-	ReConstruct()
-
-	Workspace.Vehicles.ChildAdded:Connect(ReConstruct)
-	Workspace.Vehicles.ChildRemoved:Connect(ReConstruct)
+	coroutine.wrap(function()
+		ReConstruct()
+	end)()
 
 	CreateUi.Data.GlobalUi.Settings.Models = Dropdown
 
@@ -120,18 +111,25 @@ Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 end
 
 Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
-	CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
-		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name .. " | " ..Packet.Data.Key})
+	Packet.Data.Button = CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
+		CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 		CreateUi.Data.GlobalUi.Settings.Models.Update(function(Model)
 			local Output, Offset = Packet:UpdateModel(Model)
 			local Notif = Category.CreateNotif("Model Update", Offset, Output, {
+				(Offset == Vector2.new(600, 800) and {
+					Text = "Reload",
+					Close = true,
+					Callback = function()
+						Packet.Data.Destroy()
+					end
+				} or nil),
 				{
-					Text = "Ok",
+					Text = Offset == Vector2.new(600, 800) and "Cancel" or "Ok",
 					Close = true,
 					Callback = function() end
 				}
 			})
-		end, {Name = "Selected Model", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
+		end, {Name = "Base Chassis", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
 		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
@@ -148,42 +146,83 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
 
+Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
+	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
+
+	CreateUi.Data.GlobalUi.ConfigList.Name = Label
+
+	return Label
+end
+
 Env.CreateConfigListSection = function(Channel) -- Config List Section
 	local Section = Channel.CreateSection("Configs")
+
+	CreateUi.Functions.CreateSelectedConfigName(Section)
 
 	CreateUi.Data.GlobalUi.ConfigListSection = Section
 
 	return Section
 end
 
-Env.CreateIdTextBox = function(Category, Section) -- Id TextBox
-	local TextBox = Section.CreateTextBox(function(Data)
+Env.CreateModelLoad = function(Category, Section) -- Model Load
+	local Check = function(Data)
 		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
 
 		local Notif = Category.CreateNotif("Model Check", Offset, Output, {
-			{
+			(Offset == Vector2.new(0, 900) and {
 				Text = "Continue",
 				Close = true,
 				Callback = function()
-					local Packet = Importer.Functions.CreateNewSave(Data)
+					local Packet = Importer.Functions.CreateNewSave({
+						Name = getcustomasset and string.gsub(string.split(Data, [[\]])[3], ".rbxm", "") or MarketplaceService:GetProductInfo(Data).Name,
+						Data = Data,
+						Height = 0
+					})
 					CreateUi.Functions.CreateConfigListElement(Category, Packet)
 				end
-			},
+			} or nil),
 			{
 				Text = "Cancel",
 				Close = true,
 				Callback = function() end
 			}
 		})
-	end, {Name = "Model " .. (getsynasset and "File Name" or "Id"), Text = (getsynasset and "File Name" or "Id"), NumOnly = not getsynasset})
+	end
+	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", AltText = "", Options = {}}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
 
-	return TextBox
+	if getcustomasset then
+		coroutine.wrap(function()
+			while true do
+				Dropdown:ClearOptions()
+				for i, v in next, ReadWrite.Functions.ReadVehicles() do
+					Dropdown.AddOption(v)
+				end
+				task.wait(5)
+			end
+		end)()
+	end
+
+	coroutine.wrap(function()
+		while true do
+			if CreateUi.Data.GlobalUi.ConfigListSection then
+                for i, v in next, ReadWrite.Functions.ReadConfigs() do
+                    local Packet = Importer.Functions.CreateNewSave(v)
+					if Packet then
+                    	CreateUi.Functions.CreateConfigListElement(Category, Packet)
+					end
+                end
+            end
+			task.wait()
+		end
+	end)()
+
+	return Dropdown
 end
 
 Env.CreateNewConfigSection = function(Category, Channel) -- New Config Section
 	local Section = Channel.CreateSection("New Config")
 
-	CreateUi.Functions.CreateIdTextBox(Category, Section)
+	CreateUi.Functions.CreateModelLoad(Category, Section)
 
 	return Section
 end
@@ -193,14 +232,8 @@ Env.CreateImportChannel = function(Category) -- Importer Channel
 
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
 	CreateUi.Functions.CreateConfigListSection(Channel)
-	CreateUi.Functions.CreateManageConfigSection(Channel)
 	CreateUi.Functions.CreateConfigSettingsSection(Channel)
-
-	return Channel
-end
-
-Env.CreateInitializedChannel = function(Category) -- Initialized Channel
-	local Channel = Category.CreateChannel("Initialized")
+	CreateUi.Functions.CreateManageConfigSection(Channel)
 
 	return Channel
 end
@@ -209,7 +242,6 @@ Env.CreateImportCategory = function(Guild) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
-	CreateUi.Functions.CreateInitializedChannel(Category)
 
 	return Category
 end
@@ -229,7 +261,7 @@ Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
 end
 
 Env.CreateImporterGuild = function(Ui) -- Importer Guild
-	local Guild = Ui.CreateGuild("Importer", getsynasset and getsynasset("jailbreak.png") or "", getsynasset and getsynasset("badimo.webm") or "")
+	local Guild = Ui.CreateGuild("Importer", getcustomasset and getcustomasset("jailbreak.png") or "", getcustomasset and getcustomasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)
 	CreateUi.Functions.CreateVehcileCategory(Guild)

@@ -2,6 +2,8 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
+getgenv().getcustomasset = getcustomasset or getsynasset
+
 local Loaded = {}
 
 import = function(dir)
@@ -12,5 +14,7 @@ import = function(dir)
 end
 
 local CreateUi = import("Ui/Create.lua")
+local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 
+ReadWrite.Functions.SetupReadWrite()
 CreateUi.Functions.CreateUi()

@@ -7,35 +7,30 @@ local VehicleChecks, Env = {
 	Data = {
 		Checks = {
 			WheelFrontLeft = {
-				Required = true,
+				Wheel = {},
+				Rim = {}
 			},
 			WheelFrontRight = {
-				Required = true,
+				Wheel = {},
+				Rim = {}
 			},
 			WheelBackLeft = {
-				Required = true,
+				Wheel = {},
+				Rim = {}
 			},
 			WheelBackRight = {
-				Required = true,
+				Wheel = {},
+				Rim = {},
 			},
-			Camera = {
-				Required = true,
+			Model = {
+				SteeringWheel = {},
+				Nitrous = {},
 			},
-			InsideCamera = {
-				Required = true
-			},
-			Engine = {
-				Required = true,
-			},
-			Seat = {
-				Required = true,
-			},
-			Steer = {
-				Required = true,
-			},
-			SteeringWheel = {
-				Required = true,
-			}
+			Camera = {},
+			InsideCamera = {},
+			Engine = {},
+			Seat = {},
+			Steer = {}
 		}
 	},
 	Functions = {}
@@ -56,44 +51,350 @@ local MMeta = {
 setmetatable(VehicleChecks.Functions, LMeta)
 setmetatable(VehicleChecks.Module.Functions, MMeta)
 
+Env.CheckTable = function(Output, Check, Model, Path)
+	for i, v in next, Check do
+		if Model:FindFirstChild(i) then
+			VehicleChecks.Functions.CheckTable(Output, v, Model:FindFirstChild(i), Path .."." .. i)
+		else
+			Output.String = Output.String .. "\n" .. Path .."." .. i .. " Not Found"
+		end
+	end
+end
+
 Env.MRunCheck = function(Data)
 	local Success, Response = pcall(function()
-		return game:GetObjects(getsynasset and getsynasset("./Vehicles/" .. Data .. ".rbxm") or "rbxassetid://" .. Data)[1]
+		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. Data)[1]
 	end)
 
 	if not Success or not Response then
 		return (Response or "Failed to load model"), Vector2.new(0, 600)
 	end
 
-	local Output = {}
-	for index, instance in next, Response:GetDescendants() do
-		if VehicleChecks.Data.Checks[instance.Name] then
-			Output[#Output + 1] = instance.Name
-		end
-	end
+	local Output = {
+		String = ""
+	}
+
+	VehicleChecks.Functions.CheckTable(Output, VehicleChecks.Data.Checks, Response, "Model")
 
     Response:Destroy()
 
-	local String = ""
-	for i,v in next, VehicleChecks.Data.Checks do
-		if not table.find(Output, i) then
-			String = String .. "\n" .. i .. " Not Found"
-		end
-	end
-
-	return ((String:len() > 0 and String) or "Model is valid"), Vector2.new(0, 900)
+	return Output.String:len() > 0 and Output.String or "Model is valid", Output.String:len() > 0 and Vector2.new(0, 600) or Vector2.new(0, 900)
 end
 
 return VehicleChecks.Module
 end,
+['Modules/Importer/Customization.lua'] = function()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Customization, Env = {
+	Module = {
+		Functions = {},
+		Data = {}
+	},
+	Data = {
+        Spoiler = require(ReplicatedStorage.Game.Garage.StoreData.Spoiler),
+        SpoilerCustomize = require(ReplicatedStorage.Game.Garage.Customize.Spoiler),
+    },
+	Functions = {}
+}, {}
+
+local LMeta = {
+	__index = function(self: table, index: string)
+		return Env[index]
+	end
+}
+
+local MMeta = {
+	__index = function(self: table, index: string)
+		return Env["M" .. index]
+	end
+}
+
+setmetatable(Customization.Functions, LMeta)
+setmetatable(Customization.Module.Functions, MMeta)
+
+Env.GetSpoilerName = function(MeshId)
+    for i,v in next, ReplicatedStorage.Resource.Spoiler:GetChildren() do
+        if v.MeshId == MeshId then
+            return v.Name
+        end
+    end
+end
+
+Env.BodyColor = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") then
+        return
+    end
+    for i, v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == "Body" then
+            v.Color = Item.Color
+            v.Material = Item.Material
+            v.Reflectance = Item.Reflectance
+        end
+    end
+end
+
+Env.SecondBodyColor = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") then
+        return
+    end
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == "SecondBody" then
+            v.Color = Item.Color
+            v.Material = Item.Material
+            v.Reflectance = Item.Reflectance
+        end
+    end
+end
+
+Env.SeatColor = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") then
+        return
+    end
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == "Seats" then
+            v.Color = Item.Color
+            v.Material = Item.Material
+            v.Reflectance = Item.Reflectance
+        end
+    end
+end
+
+Env.HeadlightsColor = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") then
+        return
+    end
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == "Headlights" then
+            v.Color = Item.Color
+            v.Material = Item.Material
+            v.Reflectance = Item.Reflectance
+        end
+    end
+end
+
+Env.InteriorMainColor = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") then
+        return
+    end
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == "Interior" then
+            v.Color = Item.Color
+            v.Material = Item.Material
+            v.Reflectance = Item.Reflectance
+        end
+    end
+end
+
+Env.InteriorDetailColor = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") then
+        return
+    end
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == "SecondInterior" then
+            v.Color = Item.Color
+            v.Material = Item.Material
+            v.Reflectance = Item.Reflectance
+        end
+    end
+end
+
+Env.WindowColor = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") then
+        return
+    end
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == "Windows" then
+            v.Color = Item.Color
+            v.Material = Item.Material
+            v.Reflectance = Item.Reflectance
+        end
+    end
+end
+
+Env.WindowTint = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") then
+        return
+    end
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == "Windows" and Item < 1 then
+            v.Transparency = Item
+        end
+    end
+end
+
+Env.SpoilerColor = function(Packet, Item)
+    local SpoilerPart = Packet.Data.Model:FindFirstChild("SpoilerPart")
+    if SpoilerPart then
+        Packet.Data.Model.SpoilerPart.Color = Item.Color
+        Packet.Data.Model.SpoilerPart.Material = Item.Material
+        Packet.Data.Model.SpoilerPart.Reflectance = Item.Reflectance
+    end
+end
+
+Env.Spoiler = function(Packet, Spoiler)
+    local SpoilerName, SpoilerData = Customization.Functions.GetSpoilerName(Spoiler.MeshId)
+    for i,v in next, Customization.Data.Spoiler.Items do
+        if v.Name == SpoilerName then
+            SpoilerData = v
+        end
+    end
+    Packet.Data.Model.DescendantAdded:Connect(function(descendant)
+        if descendant.Name == "SpoilerPart" then
+            Packet.Data.LatchCFrames[descendant] = Packet.Data.Model.PrimaryPart.CFrame:ToObjectSpace(descendant.CFrame)
+        end
+    end)
+    Customization.Data.SpoilerCustomize(SpoilerData, {
+        Model = Packet.Data.Model
+    })
+end
+
+Env.MConnectModel = function(Packet)
+    Packet.Data.Chassis.DescendantRemoving:Connect(function(RemovedDescendant)
+        if RemovedDescendant.Name == "SpoilerPart" then
+            RunService.Heartbeat:Wait()
+            local SpoilerPart = Packet.Data.Model:FindFirstChild("SpoilerPart")
+            if not Packet.Data.Chassis:FindFirstChild("SpoilerPart") and SpoilerPart then
+                SpoilerPart:Destroy()
+            end
+        end
+    end)
+    Packet.Data.Chassis.DescendantAdded:Connect(function(descendant)
+        if descendant.Name == "SpoilerPart" then
+            for i,v in next, Packet.Data.Connections do
+                v:Disconnect()
+                Packet.Data.Connections[i] = nil
+            end
+            Customization.Functions.Spoiler(Packet, descendant)
+            Customization.Functions.SpoilerColor(Packet, descendant)
+            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.SpoilerColor(Packet, descendant)
+            end))
+            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.SpoilerColor(Packet, descendant)
+            end))
+            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.SpoilerColor(Packet, descendant)
+            end))
+        end
+    end)
+	for i,v in next, Packet.Data.Chassis.Model:GetDescendants() do
+        if v.Name == "SpoilerPart" then
+            Customization.Functions.Spoiler(Packet, v)
+            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.SpoilerColor(Packet, v)
+            end))
+            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.SpoilerColor(Packet, v)
+            end))
+            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.SpoilerColor(Packet, v)
+            end))
+        end
+        if v.Name == "Windows" then
+            Customization.Functions.WindowTint(Packet, v.Transparency)
+            Customization.Functions.WindowColor(Packet, v)
+            v:GetPropertyChangedSignal("Transparency"):Connect(function()
+                Customization.Functions.WindowTint(Packet, v.Transparency)
+            end)
+            v:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.WindowColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.WindowColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.WindowColor(Packet, v)
+            end)
+        end
+        if v.Name == "SecondInterior" then
+            Customization.Functions.InteriorDetailColor(Packet, v)
+            v:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.InteriorDetailColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.InteriorDetailColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.InteriorDetailColor(Packet, v)
+            end)
+        end
+        if v.Name == "Interior" then
+            Customization.Functions.InteriorMainColor(Packet, v)
+            v:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.InteriorMainColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.InteriorMainColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.InteriorMainColor(Packet, v)
+            end)
+        end
+        if v.Name == "Headlights" then
+            Customization.Functions.HeadlightsColor(Packet, v)
+            v:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.HeadlightsColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.HeadlightsColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.HeadlightsColor(Packet, v)
+            end)
+        end
+        if v.Name == "Seats" then
+            Customization.Functions.SeatColor(Packet, v)
+            v:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.SeatColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.SeatColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.SeatColor(Packet, v)
+            end)
+        end
+        if v.Name == "SecondBody" then
+            Customization.Functions.SecondBodyColor(Packet, v)
+            v:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.SecondBodyColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.SecondBodyColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.SecondBodyColor(Packet, v)
+            end)
+        end
+        if v.Name == "Body" then
+            Customization.Functions.BodyColor(Packet, v)
+            v:GetPropertyChangedSignal("Color"):Connect(function()
+                Customization.Functions.BodyColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Material"):Connect(function()
+                Customization.Functions.BodyColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.BodyColor(Packet, v)
+            end)
+        end
+    end
+end
+
+return Customization.Module
+end,
 ['Modules/Importer/Importer.lua'] = function()
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
-local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+
+local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
+local Customization = import("Modules/Importer/Customization.lua")
 
 local Importer, Env = {
 	Module = {
@@ -102,11 +403,12 @@ local Importer, Env = {
 	},
 	Data = {
 		AlexChassis = require(ReplicatedStorage.Module.AlexChassis),
+        Vehicle = require(ReplicatedStorage.Game.Vehicle),
         ImportPacket = {},
 		Packets = {}
     },
 	Functions = {
-        GetLocalVehiclePacket = require(ReplicatedStorage.Game.Vehicle).GetLocalVehiclePacket
+		getDefaultVehicleModel = require(ReplicatedStorage.Game.getDefaultVehicleModel)
     }
 }, {}
 
@@ -179,6 +481,44 @@ Importer.Data.AlexChassis.LockCamera = function(p66)
 	end;
 end
 
+require(ReplicatedStorage.Game.Garage.StoreData.BodyColor).Update = function(p2, p3)
+	local v7 = os.clock() / 2;
+	p2.CFrame = (CFrame.Angles(0, v7 % (math.pi * 2), 0) * CFrame.Angles((math.sin(v7) * 0.25) - 0.3, 0, 0)) * CFrame.new(0, 0, p3.BoundingBox.Size.Magnitude * 0.6);
+end
+
+require(ReplicatedStorage.Game.Garage.StoreData.SecondTexture).Update = function(p2, p3)
+	local v7 = os.clock() / 2;
+	p2.CFrame = (CFrame.Angles(0, v7 % (math.pi * 2), 0) * CFrame.Angles((math.sin(v7) * 0.25) - 0.3, 0, 0)) * CFrame.new(0, 0, p3.BoundingBox.Size.Magnitude * 0.6);
+end
+
+require(ReplicatedStorage.Game.Garage.StoreData.Texture).Update = function(p2, p3)
+	local v7 = os.clock() / 2;
+	p2.CFrame = (CFrame.Angles(0, v7 % (math.pi * 2), 0) * CFrame.Angles((math.sin(v7) * 0.25) - 0.3, 0, 0)) * CFrame.new(0, 0, p3.BoundingBox.Size.Magnitude * 0.6);
+end
+
+local GetLocalVehicleModel = Importer.Data.Vehicle.GetLocalVehicleModel
+
+Importer.Data.Vehicle.GetLocalVehicleModel = function()
+    local Model = GetLocalVehicleModel()
+    if debug.getinfo(2).name == "GetInstance" and Model and CollectionService:HasTag(Model, "Overlayed") then
+        return Importer.Data.Packets[Model:GetAttribute("Key")].Data.Model
+    end
+    return GetLocalVehicleModel()
+end
+
+getDefaultVehicleModel = hookfunction(Importer.Functions.getDefaultVehicleModel, function(Make, Type)
+    local CollectionService = game:GetService("CollectionService")
+
+    local CallingFunc = debug.getinfo(2).name
+    if CallingFunc and (string.find(CallingFunc, "GetInstance") or string.find(CallingFunc, "getInstForSelection")) then
+		local Packet = Importer.Data.Vehicle.GetLocalVehiclePacket()
+		if Packet and CollectionService:HasTag(Packet.Model, "Overlayed") and Make == Packet.Make then
+        	return getDefaultVehicleModel(Importer.Data.Packets[Packet.Model:GetAttribute("Key")].Data.Model.Name, "Chassis")
+		end
+    end
+    return getDefaultVehicleModel(Make, Type)
+end)
+
 Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(function()
 	if Workspace.CurrentCamera.CameraSubject:IsDescendantOf(Workspace.Vehicles) and CollectionService:HasTag(Workspace.CurrentCamera.CameraSubject.Parent, "Overlayed") then
 		Workspace.CurrentCamera.CameraSubject = Importer.Data.Packets[Workspace.CurrentCamera.CameraSubject.Parent:GetAttribute("Key")].Data.Model.Camera
@@ -198,21 +538,38 @@ Env.GetNearestThrust = function(Wheel)
 	return Thrust, Distance
 end
 
-Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
+Env.WheelDescendant = function(Wheels, BasePart)
+	for i,v in next, Wheels do
+		if BasePart:IsDescendantOf(i) then
+			return true
+		end
+	end
+end
+
+Importer.Data.ImportPacket.NewPacket = function(self, Data)
+	if Data.Key and Importer.Data.Packets[Data.Key] then
+		return
+	end
+
 	local Packet = {
 		Settings = {
-			Name = Name,
-			Data = Data,
+			Name = Data.Name,
+			Data = Data.Data,
 			Model = nil,
-			Height = 0
+			Height = Data.Height
 		},
 		Data = {
-			Key = os.clock() .. string.char(math.random(1, 200)),
+			Key = Data.Key or math.ceil(os.clock() + math.random(1, 200)),
 			Initialized = false,
 			Calculated = {},
 			LatchCFrames = {},
+			ChassisTransparency = {},
+			Wheels = {},
+			RealWheels = {},
 			RelativeWheels = {},
 			RelativeThrust = {},
+			Connections = {},
+			SeatCF = nil,
 			RelativeSteeringWheel = nil,
 			LargestWheelSize = 0
 		}
@@ -222,12 +579,23 @@ Importer.Data.ImportPacket.NewPacket = function(self, Name, Data)
 		__index = self
 	})
 
+	setmetatable(Packet.Settings, {
+		__newindex = function(table, key, value)
+			rawset(table, key, value)
+			ReadWrite.Functions.WriteConfig(Packet)
+		end
+	})
+
+	Importer.Data.Packets[Packet.Data.Key] = Packet
+
+	ReadWrite.Functions.WriteConfig(Packet)
+
 	return Packet
 end
 
 Importer.Data.ImportPacket.UpdateModel = function(self, Model)
 	if self.Data.Initialized then
-		return "This config has already been initialized, you can not update it's base model\nPlease clone the config if you would like to overlay it over another model", Vector2.new(600, 800)
+		return "This config has already been initialized, you can not update it's base model\nWould you like to reload the config?", Vector2.new(600, 800)
 	end
 	self.Settings.Model = Model
 	return "Model Updated", Vector2.new(0, 900)
@@ -238,7 +606,7 @@ Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
-    local Model = game:GetObjects(getsynasset and getsynasset("./Vehicles/" .. self.Settings.Data .. ".rbxm") or "rbxassetid://" .. self.Settings.Data)[1]
+    local Model = game:GetObjects(getcustomasset and getcustomasset(self.Settings.Data) or "rbxassetid://" .. self.Settings.Data)[1]
 
     return Model
 end
@@ -254,39 +622,109 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 	self.Data.Model = self:LoadModel()
 	self.Data.Chassis = self.Settings.Model
 
-	Importer.Data.Packets[self.Data.Key] = self
-
 	self.Data.Chassis:SetAttribute("Key", self.Data.Key)
 	CollectionService:AddTag(self.Data.Chassis, "Overlayed")
+
+	for i,v in next, self.Data.Chassis:GetDescendants() do
+		if v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel") then
+			self.Data.ChassisTransparency[v] = v.Transparency
+		end
+	end
+
+	self.Data.SeatCF = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(self.Data.Chassis.Seat.CFrame)
+
+	local ReplicatedStorageClone = self:LoadModel()
+
+	for i, v in next, ReplicatedStorageClone:GetDescendants() do
+		if v:IsA("BasePart") then
+			v.CanCollide = true
+			v.Anchored = true
+		end
+		if v:IsA("Weld") then
+			v:Destroy()
+		end
+	end
+	for i,v in next, ReplicatedStorageClone:GetChildren() do
+		if v.Name == "Thrust" then
+			v:Destroy()
+		end
+		if string.find(v.Name, "Wheel") and v:IsA("Model") then
+			v.Rim:Destroy()
+			v.Wheel.Anchored = true
+			v.Parent = ReplicatedStorageClone.Preset
+		end
+	end
+	local NumberValue = Instance.new("NumberValue", ReplicatedStorageClone)
+	NumberValue.Value = 0.7
+	NumberValue.Name = "InnerWheelPct"
+	ReplicatedStorageClone.Parent = ReplicatedStorage.Resource.Vehicles
 
 	local WheelDiff = self.Data.Model.WheelFrontLeft.Wheel.Position - self.Data.Model.WheelBackRight.Wheel.Position
 	self.Data.Model.PrimaryPart.Position = WheelDiff.Unit * (WheelDiff.Magnitude/2) + self.Data.Model.WheelBackRight.Wheel.Position
 
+	local CreateRim = function(v)
+		local NewRim = self.Data.Chassis[v.Name].Rim:Clone()
+		NewRim.Size = Vector3.new(v.Wheel.Size.X, v.Rim.Size.Y, v.Rim.Size.Z)
+		NewRim.CFrame = v.Wheel.CFrame:ToWorldSpace(self.Data.Chassis[v.Name].Wheel.CFrame:ToObjectSpace(self.Data.Chassis[v.Name].Rim.CFrame))
+		v.Rim:Destroy()
+		NewRim.Parent = v
+		self.Data.Wheels[v.Name .. "Rim"] = {
+			Size = NewRim.Size,
+			MeshPart = NewRim
+		}
+		self.Data.RealWheels[self.Data.Chassis[v.Name].Rim] = self.Data.Chassis[v.Name].Rim.Transparency
+		table.insert(self.Data.Calculated, v.Rim)
+	end
+
+	local CreateWheel = function(v)
+		local NewWheel = self.Data.Chassis[v.Name].Wheel:Clone()
+		NewWheel.Size = v.Wheel.Size
+		NewWheel.CFrame = v.Rim.CFrame:ToWorldSpace(self.Data.Chassis[v.Name].Rim.CFrame:ToObjectSpace(self.Data.Chassis[v.Name].Wheel.CFrame))
+		v.Wheel:Destroy()
+		NewWheel.Parent = v
+		self.Data.Wheels[v.Name .. "Wheel"] = {
+			Size = NewWheel.Size,
+			MeshPart = NewWheel
+		}
+		self.Data.RealWheels[self.Data.Chassis[v.Name].Wheel] = self.Data.Chassis[v.Name].Wheel.Transparency
+		self.Data.LargestWheelSize = NewWheel.Size.Y > self.Data.LargestWheelSize and NewWheel.Size.Y/2 or self.Data.LargestWheelSize
+		table.insert(self.Data.Calculated, v.Wheel)
+	end
+
+	local UpdateRim = function(v)
+		self.Data.Chassis[v.Name].Rim.Size = self.Data.Wheels[v.Name .. "Rim"].Size
+		self.Data.RealWheels[self.Data.Chassis[v.Name].Rim] = self.Data.Chassis[v.Name].Rim.Transparency
+		local NewRim = self.Data.Chassis[v.Name].Rim:Clone()
+		v.Rim:Destroy()
+		NewRim.CanCollide = false
+		for index, value in next, NewRim:GetChildren() do
+			if value:IsA("Weld") then
+				value:Destroy()
+			end
+		end
+		table.insert(self.Data.Calculated, NewRim)
+		self.Data.Wheels[v.Name .. "Rim"].MeshPart = NewRim
+		NewRim.Parent = v
+	end
+
 	for i, v in next, self.Data.Model:GetChildren() do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
-			local NewRim = self.Data.Chassis[v.Name].Rim:Clone()
-			NewRim.Size = Vector3.new(v.Wheel.Size.X, v.Rim.Size.Y, v.Rim.Size.Z)
-			NewRim.CFrame = v.Wheel.CFrame:ToWorldSpace(self.Data.Chassis[v.Name].Wheel.CFrame:ToObjectSpace(self.Data.Chassis[v.Name].Rim.CFrame))
-			v.Rim:Destroy()
-			NewRim.Parent = v
+			CreateRim(v)
+			CreateWheel(v)
 
-			local NewWheel = self.Data.Chassis[v.Name].Wheel:Clone()
-			NewWheel.Size = v.Wheel.Size
-			NewWheel.CFrame = v.Rim.CFrame:ToWorldSpace(self.Data.Chassis[v.Name].Rim.CFrame:ToObjectSpace(self.Data.Chassis[v.Name].Wheel.CFrame))
-			v.Wheel:Destroy()
-			NewWheel.Parent = v
-
-			table.insert(self.Data.Calculated, v.Wheel)
-			table.insert(self.Data.Calculated, v.Rim)
 			self.Data.RelativeWheels[v.Name] = {
 				Rim = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Rim.CFrame),
 				Wheel = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Wheel.CFrame),
 			}
 
-			self.Data.LargestWheelSize = NewWheel.Size.Y > self.Data.LargestWheelSize and NewWheel.Size.Y/2 or self.Data.LargestWheelSize
-
-			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+			local Thrust, Connection = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
 			self.Data.RelativeThrust[Thrust] = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(Thrust.CFrame)
+			Connection = self.Data.Chassis[v.Name].DescendantAdded:Connect(function(descendant)
+                if not self.Data.Model.Parent then
+                    return Connection:Disconnect()
+                end
+				UpdateRim(v)
+			end)
 		end
 	end
 
@@ -309,6 +747,8 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 		end
 	end
 
+	Customization.Functions.ConnectModel(self)
+
 	self.Data.Model.Parent = Workspace
 
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame + Vector3.new(0, self.Settings.Height, 0)
@@ -317,9 +757,41 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 	local Update = RunService.Heartbeat:Connect(function()
 		self:Update()
 	end)
+
+	self.Data.Destroy = function()
+		Update:Disconnect()
+		if self.Data.Chassis.Parent then
+			self.Data.Chassis:SetAttribute("Key", nil)
+			CollectionService:RemoveTag(self.Data.Chassis, "Overlayed")
+			for i, v in next, self.Data.Model:GetChildren() do
+				if string.find(v.Name, "Wheel") and v:IsA("Model") then
+					local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+					local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
+					Thrust.Position = ThrustCF.Position
+				end
+			end
+			for i,v in next, self.Data.ChassisTransparency do
+				i.Transparency = v
+			end
+			for i,v in next, self.Data.Chassis.Model:GetChildren() do
+				if v.Name == "Nitrous" then
+					v.Fire.Transparency = self.Data.Model.Model.Nitrous.Fire.Transparency
+					v.Smoke.Transparency = self.Data.Model.Model.Nitrous.Smoke.Transparency
+				end
+			end
+			self.Data.Chassis.Seat.Weld.C0 = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.SeatCF):Inverse() * self.Data.Chassis.PrimaryPart.CFrame
+		end
+		if not Workspace.CurrentCamera.CameraSubject or not Workspace.CurrentCamera.CameraSubject.Parent then
+			Workspace.CurrentCamera.CameraSubject = self.Data.Chassis.Parent and self.Data.Chassis.Camera or Players.LocalPlayer.Character.Humanoid
+		end
+		self.Data.Model:Destroy()
+		self.Data.Button.Destroy()
+		Importer.Data.Packets[self.Data.Key] = nil
+	end
+
 	Workspace.Vehicles.DescendantRemoving:Connect(function(descendant)
 		if descendant == self.Data.Chassis then
-			Update:Disconnect()
+			self.Data.Destroy()
 		end
 	end)
 
@@ -334,17 +806,40 @@ Importer.Data.ImportPacket.Update = function(self)
 	local HasPlayer = self.Data.Chassis:FindFirstChild("Seat") and self.Data.Chassis.Seat:FindFirstChild("PlayerName") and self.Data.Chassis.Seat.PlayerName.Value == Players.LocalPlayer.Name
 
 	for i, v in next, self.Data.Chassis:GetDescendants() do
-		if v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel") then
+		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not Importer.Functions.WheelDescendant(self.Data.RealWheels, v) then
 			v.Transparency = 1
 		end
 	end
+	for i,v in next, self.Data.Wheels do
+		for index, value in next, v.MeshPart:GetChildren() do
+			if value:IsA("Decal") then
+				value.Transparency = HasPlayer and 0 or 1
+			end
+		end
+		v.MeshPart.Transparency = HasPlayer and 1 or 0
+	end
+	for i,v in next, self.Data.RealWheels do
+		for index, value in next, i:GetChildren() do
+			if value:IsA("Decal") then
+				value.Transparency = HasPlayer and 0 or 1
+			end
+		end
+		i.Transparency = HasPlayer and 0 or 1
+	end
 	for i, v in next, self.Data.Model:GetDescendants() do
+		if v:IsA("Weld") then
+			v:Destroy()
+		end
 		if v:IsA("BasePart") then
 			v.CanCollide = false
+			v.Anchored = true
 		end
 	end
 
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame  + Vector3.new(0, self.Settings.Height - (HasPlayer and self.Data.LargestWheelSize or 0), 0)
+	if self.Data.Model:FindFirstChild("Spoiler") then
+		self.Data.Model.Spoiler.CFrame = CFrame.lookAt(self.Data.Model.Spoiler.Position, self.Data.Model.Spoiler.Position + self.Data.Chassis.Spoiler.CFrame.LookVector)
+	end
 
 	for i,v in next, self.Data.LatchCFrames do
 		i.CFrame = self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(v)
@@ -396,12 +891,121 @@ Importer.Data.ImportPacket.Update = function(self)
 end
 
 Env.MCreateNewSave = function(Data)
-	local Packet = Importer.Data.ImportPacket:NewPacket(getsynasset and Data or MarketplaceService:GetProductInfo(Data).Name, Data)
+	local Packet = Importer.Data.ImportPacket:NewPacket(Data)
 
 	return Packet
 end
 
 return Importer.Module
+end,
+['Modules/Initialize/Initialize.lua'] = function()
+local Initialize, Env = {
+	Module = {
+		Functions = {},
+		Data = {}
+	},
+	Data = {},
+	Functions = {}
+}, {}
+
+local LMeta = {
+	__index = function(self: table, index: string)
+		return Env[index]
+	end
+}
+
+local MMeta = {
+	__index = function(self: table, index: string)
+		return Env["M" .. index]
+	end
+}
+
+setmetatable(Initialize.Functions, LMeta)
+setmetatable(Initialize.Module.Functions, MMeta)
+
+for i, v in next, getgc(true) do
+    if type(v) == "table" and rawget(v, "attemptEquipGarageItem") then
+        Env.MSelectItem = v.attemptEquipGarageItem
+    end
+end
+
+return Initialize.Module
+end,
+['Modules/ReadWrite/ReadWrite.lua'] = function()
+local HttpService = game:GetService("HttpService")
+local ReadWrite, Env = {
+	Module = {
+		Functions = {},
+		Data = {}
+	},
+	Data = {
+		GlobalUi = {
+			ConfigList = {},
+			Manage = {},
+			Settings = {}
+		}
+	},
+	Functions = {}
+}, {}
+
+local LMeta = {
+	__index = function(self: table, index: string)
+		return Env[index]
+	end
+}
+
+local MMeta = {
+	__index = function(self: table, index: string)
+		return Env["M" .. index]
+	end
+}
+
+setmetatable(ReadWrite.Functions, LMeta)
+setmetatable(ReadWrite.Module.Functions, MMeta)
+
+Env.MSetupReadWrite = function()
+    if not isfolder("./PayPal") then
+        makefolder("./PayPal")
+    end
+    if not isfolder("./PayPal/Vehicles") then
+        makefolder("./PayPal/Vehicles")
+    end
+    if not isfolder("./PayPal/Configs") then
+        makefolder("./PayPal/Configs")
+    end
+end
+
+Env.MReadVehicles = function()
+	local Vehicles = {}
+	for i,v in next, listfiles("./PayPal/Vehicles") do
+		table.insert(Vehicles, {
+			Name = string.gsub(string.split(v, [[\]])[3], ".rbxm", ""),
+			Data = v,
+			Enter = function() end,
+			Leave = function() end
+		})
+	end
+	return Vehicles
+end
+
+Env.MReadConfigs = function()
+    local Configs = {}
+    for i, v in next, listfiles("./PayPal/Configs") do
+        table.insert(Configs, HttpService:JSONDecode(readfile(v)))
+    end
+    return Configs
+end
+
+Env.MWriteConfig = function(Config)
+	writefile("./PayPal/Configs/" .. Config.Settings.Name .. Config.Data.Key .. ".json", HttpService:JSONEncode({
+		Name = Config.Settings.Name,
+		Data = Config.Settings.Data,
+		Height = Config.Settings.Height,
+		Key = Config.Data.Key
+	}))
+end
+
+return ReadWrite.Module
 end,
 ['Modules/Ui/Library.lua'] = function()
 local TweenService = game:GetService("TweenService")
@@ -1107,6 +1711,11 @@ Env.MCreateUi = function(Name: string)
                         ButtonLibrary.Update = function(UpdateCallback, UpdateData: table)
                             ButtonName.Text = UpdateData.Name or Data.Name
                             Callback = UpdateCallback or Callback
+                        end
+
+                        ButtonLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Button))
+                            Button:Destroy()
                         end
 
                         return ButtonLibrary
@@ -2055,10 +2664,12 @@ end
 return Library.Module
 end,
 ['Ui/Create.lua'] = function()
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
+local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 local Importer = import("Modules/Importer/Importer.lua")
 
 local CreateUi, Env = {
@@ -2068,6 +2679,7 @@ local CreateUi, Env = {
 	},
 	Data = {
 		GlobalUi = {
+			ConfigList = {},
 			Manage = {},
 			Settings = {}
 		}
@@ -2098,18 +2710,9 @@ Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	return Button
 end
 
-Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
-	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
-
-	CreateUi.Data.GlobalUi.Manage.Name = Label
-
-	return Label
-end
-
 Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	local Section = Channel.CreateSection("Manage Config")
 
-	CreateUi.Functions.CreateSelectedConfigName(Section)
 	CreateUi.Functions.CreateInitConfigButton(Section)
 
 	return Section
@@ -2124,19 +2727,15 @@ Env.CreateModelHeightTextBox = function(Section)
 end
 
 Env.CreateSelectModelDropdown = function(Section) -- Selected Model
-	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Selected Model", AltText = "", Options = {}}), {}
+	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Base Chassis", AltText = "", Options = {}}), {}
 
 	AddVehicle = function(Vehicle)
 		local Seat = Vehicle:FindFirstChild("Seat")
-		if Seat and Seat:FindFirstChild("PlayerName") then
-			if Connections[Seat] then
-				Connections[Seat]:Disconnect()
-			end
-			Connections[Seat] = Seat.PlayerName:GetPropertyChangedSignal("Value"):Connect(function()
-				ReConstruct()
-			end)
-		end
+		local BoundingBox = Vehicle:FindFirstChild("BoundingBox")
 		local PlayerName = Seat and Seat:FindFirstChild("PlayerName") and Seat.PlayerName.Value or ""
+		if BoundingBox then
+			BoundingBox.Transparency = 1
+		end
 		Dropdown.AddOption({
 			Name = Vehicle.Name .. (PlayerName ~= "" and " : ".. PlayerName or ""),
 			Data = Vehicle,
@@ -2155,12 +2754,13 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 		for i,v in next, Workspace.Vehicles:GetChildren() do
 			AddVehicle(v)
 		end
+
+		task.wait(5)
+		ReConstruct()
 	end
-
-	ReConstruct()
-
-	Workspace.Vehicles.ChildAdded:Connect(ReConstruct)
-	Workspace.Vehicles.ChildRemoved:Connect(ReConstruct)
+	coroutine.wrap(function()
+		ReConstruct()
+	end)()
 
 	CreateUi.Data.GlobalUi.Settings.Models = Dropdown
 
@@ -2177,18 +2777,25 @@ Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 end
 
 Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
-	CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
-		CreateUi.Data.GlobalUi.Manage.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name .. " | " ..Packet.Data.Key})
+	Packet.Data.Button = CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
+		CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 		CreateUi.Data.GlobalUi.Settings.Models.Update(function(Model)
 			local Output, Offset = Packet:UpdateModel(Model)
 			local Notif = Category.CreateNotif("Model Update", Offset, Output, {
+				(Offset == Vector2.new(600, 800) and {
+					Text = "Reload",
+					Close = true,
+					Callback = function()
+						Packet.Data.Destroy()
+					end
+				} or nil),
 				{
-					Text = "Ok",
+					Text = Offset == Vector2.new(600, 800) and "Cancel" or "Ok",
 					Close = true,
 					Callback = function() end
 				}
 			})
-		end, {Name = "Selected Model", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
+		end, {Name = "Base Chassis", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
 		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
@@ -2205,42 +2812,83 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
 
+Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
+	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
+
+	CreateUi.Data.GlobalUi.ConfigList.Name = Label
+
+	return Label
+end
+
 Env.CreateConfigListSection = function(Channel) -- Config List Section
 	local Section = Channel.CreateSection("Configs")
+
+	CreateUi.Functions.CreateSelectedConfigName(Section)
 
 	CreateUi.Data.GlobalUi.ConfigListSection = Section
 
 	return Section
 end
 
-Env.CreateIdTextBox = function(Category, Section) -- Id TextBox
-	local TextBox = Section.CreateTextBox(function(Data)
+Env.CreateModelLoad = function(Category, Section) -- Model Load
+	local Check = function(Data)
 		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
 
 		local Notif = Category.CreateNotif("Model Check", Offset, Output, {
-			{
+			(Offset == Vector2.new(0, 900) and {
 				Text = "Continue",
 				Close = true,
 				Callback = function()
-					local Packet = Importer.Functions.CreateNewSave(Data)
+					local Packet = Importer.Functions.CreateNewSave({
+						Name = getcustomasset and string.gsub(string.split(Data, [[\]])[3], ".rbxm", "") or MarketplaceService:GetProductInfo(Data).Name,
+						Data = Data,
+						Height = 0
+					})
 					CreateUi.Functions.CreateConfigListElement(Category, Packet)
 				end
-			},
+			} or nil),
 			{
 				Text = "Cancel",
 				Close = true,
 				Callback = function() end
 			}
 		})
-	end, {Name = "Model " .. (getsynasset and "File Name" or "Id"), Text = (getsynasset and "File Name" or "Id"), NumOnly = not getsynasset})
+	end
+	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", AltText = "", Options = {}}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
 
-	return TextBox
+	if getcustomasset then
+		coroutine.wrap(function()
+			while true do
+				Dropdown:ClearOptions()
+				for i, v in next, ReadWrite.Functions.ReadVehicles() do
+					Dropdown.AddOption(v)
+				end
+				task.wait(5)
+			end
+		end)()
+	end
+
+	coroutine.wrap(function()
+		while true do
+			if CreateUi.Data.GlobalUi.ConfigListSection then
+                for i, v in next, ReadWrite.Functions.ReadConfigs() do
+                    local Packet = Importer.Functions.CreateNewSave(v)
+					if Packet then
+                    	CreateUi.Functions.CreateConfigListElement(Category, Packet)
+					end
+                end
+            end
+			task.wait()
+		end
+	end)()
+
+	return Dropdown
 end
 
 Env.CreateNewConfigSection = function(Category, Channel) -- New Config Section
 	local Section = Channel.CreateSection("New Config")
 
-	CreateUi.Functions.CreateIdTextBox(Category, Section)
+	CreateUi.Functions.CreateModelLoad(Category, Section)
 
 	return Section
 end
@@ -2250,14 +2898,8 @@ Env.CreateImportChannel = function(Category) -- Importer Channel
 
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
 	CreateUi.Functions.CreateConfigListSection(Channel)
-	CreateUi.Functions.CreateManageConfigSection(Channel)
 	CreateUi.Functions.CreateConfigSettingsSection(Channel)
-
-	return Channel
-end
-
-Env.CreateInitializedChannel = function(Category) -- Initialized Channel
-	local Channel = Category.CreateChannel("Initialized")
+	CreateUi.Functions.CreateManageConfigSection(Channel)
 
 	return Channel
 end
@@ -2266,7 +2908,6 @@ Env.CreateImportCategory = function(Guild) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
-	CreateUi.Functions.CreateInitializedChannel(Category)
 
 	return Category
 end
@@ -2286,7 +2927,7 @@ Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
 end
 
 Env.CreateImporterGuild = function(Ui) -- Importer Guild
-	local Guild = Ui.CreateGuild("Importer", getsynasset and getsynasset("jailbreak.png") or "", getsynasset and getsynasset("badimo.webm") or "")
+	local Guild = Ui.CreateGuild("Importer", getcustomasset and getcustomasset("jailbreak.png") or "", getcustomasset and getcustomasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)
 	CreateUi.Functions.CreateVehcileCategory(Guild)
@@ -2309,6 +2950,8 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
+getgenv().getcustomasset = getcustomasset or getsynasset
+
 local Loaded = {}
 
 import = function(dir)
@@ -2319,5 +2962,7 @@ import = function(dir)
 end
 
 local CreateUi = import("Ui/Create.lua")
+local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 
+ReadWrite.Functions.SetupReadWrite()
 CreateUi.Functions.CreateUi()

@@ -5,6 +5,15 @@
         "iuaghsf",
         "import",
         "getsynasset",
-        "syn"
+        "syn",
+        "hookfunction",
+        "getgc",
+        "getcustomasset",
+        "getgenv",
+        "listfiles",
+        "makefolder",
+        "isfolder",
+        "readfile",
+        "writefile"
     ]
 }

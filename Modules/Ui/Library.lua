@@ -703,6 +703,11 @@ Env.MCreateUi = function(Name: string)
                             Callback = UpdateCallback or Callback
                         end
 
+                        ButtonLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Button))
+                            Button:Destroy()
+                        end
+
                         return ButtonLibrary
                     end
 
