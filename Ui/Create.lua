@@ -1,10 +1,12 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
 local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 local Importer = import("Modules/Importer/Importer.lua")
+local Packet = import("Modules/Packet/Packet.lua")
 
 local CreateUi, Env = {
 	Module = {
@@ -35,6 +37,13 @@ local MMeta = {
 
 setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
+
+Env.ResetSelector = function()
+	CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = ""})
+	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", AltText = ""})
+	CreateUi.Data.GlobalUi.Settings.Height.Update(function() end, {Text = "0"})
+	CreateUi.Data.GlobalUi.Manage.Init.Update(function() end,{Name = "Initialize"})
+end
 
 Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	local Button = Section.CreateButton(function() end, {Name = "Initialize"})
@@ -121,6 +130,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 					Close = true,
 					Callback = function()
 						Packet.Data.Destroy()
+						CreateUi.Functions.ResetSelector()
 					end
 				} or nil),
 				{
@@ -142,6 +152,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 					Callback = function() end
 				}
 			})
+			CreateUi.Functions.ResetSelector()
 		end,{Name = "Initialize"})
 	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
@@ -246,10 +257,53 @@ Env.CreateImportCategory = function(Guild) -- Importer Category
 	return Category
 end
 
-Env.CreatePacketChannel = function(Category) -- Packet Channel
-	local CreateChannel = Category.CreateChannel("Packet")
+Env.FindInPacket = function(Data, Index)
+	for i, v in next, Data do
+		if v.Index == Index then
+			return true
+		end
+	end
+end
 
-	return CreateChannel
+Env.UpdatePacket = function(Section)
+	local Labels = {}
+	RunService.Heartbeat:Connect(function()
+		local Data = Packet.Functions.GetPacketData()
+		for i, v in next, Data do
+			if Labels[v.Index] and Labels[v.Index].GetData("Text") ~= v.Value  then
+				Labels[v.Index].Update({Text = v.Value})
+			end
+			if not Labels[v.Index] then
+				Labels[v.Index] = Section.CreateLabel({
+					Name = v.Name,
+					Index = v.Index,
+					Text = v.Value
+				})
+			end
+		end
+		for i,v in next, Labels do
+			if not CreateUi.Functions.FindInPacket(Data, v.GetData("Index")) then
+				v.Destroy()
+				Labels[i] = nil
+			end
+		end
+	end)
+end
+
+Env.CreatePacketSection = function(Channel)
+	local Section = Channel.CreateSection("Packet")
+
+	CreateUi.Functions.UpdatePacket(Section)
+
+	return Section
+end
+
+Env.CreatePacketChannel = function(Category) -- Packet Channel
+	local Channel = Category.CreateChannel("Packet")
+
+	CreateUi.Functions.CreatePacketSection(Channel)
+
+	return Channel
 end
 
 Env.CreateVehcileCategory = function(Guild) -- Vehicle Category

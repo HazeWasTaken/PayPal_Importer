@@ -551,10 +551,8 @@ Env.MCreateUi = function(Name: string)
                 RunService.Heartbeat:Connect(function()
                     for i,v in next, Inputs do
                         if string.find(v.Name:lower(), Input1.Text:lower()) then
-                            v.Parent.Visible = true
                             v.Visible = true
                         else
-                            v.Parent.Visible = false
                             v.Visible = false
                         end
                     end
@@ -699,13 +697,20 @@ Env.MCreateUi = function(Name: string)
                         local ButtonLibrary = {}
 
                         ButtonLibrary.Update = function(UpdateCallback, UpdateData: table)
-                            ButtonName.Text = UpdateData.Name or Data.Name
+                            Data.Name = UpdateData.Name or Data.Name
                             Callback = UpdateCallback or Callback
+                            Button.Name = Data.Name
+                            ButtonName.Text = Data.Name
+                            Callback = Callback
                         end
 
                         ButtonLibrary.Destroy = function()
                             table.remove(Inputs, table.find(Inputs, Button))
                             Button:Destroy()
+                        end
+
+                        ButtonLibrary.GetData = function(Key)
+                            return Data[Key]
                         end
 
                         return ButtonLibrary
@@ -745,6 +750,7 @@ Env.MCreateUi = function(Name: string)
                         LabelName.Font = Enum.Font.Gotham
                         LabelName.TextXAlignment = Enum.TextXAlignment.Left
                         LabelName.Parent = Button
+                        LabelName.ClipsDescendants = true
 
                         local LabelIcon = Instance.new("ImageLabel")
                         LabelIcon.Name = "ButtonIcon"
@@ -770,7 +776,19 @@ Env.MCreateUi = function(Name: string)
                         local LabelLibrary = {}
 
                         LabelLibrary.Update = function(UpdateData: table)
-                            LabelName.Text = (UpdateData.Name or Data.Name) .. " : " .. (UpdateData.Text or Data.Text)
+                            Data.Name = UpdateData.Name or Data.Name
+                            Data.Text = UpdateData.Text or Data.Text
+                            Button.Name = UpdateData.Name or Data.Name
+                            LabelName.Text = Data.Name .. " : " .. Data.Text
+                        end
+
+                        LabelLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Button))
+                            Button:Destroy()
+                        end
+
+                        LabelLibrary.GetData = function(Key)
+                            return Data[Key]
                         end
 
                         return LabelLibrary
@@ -1107,6 +1125,7 @@ Env.MCreateUi = function(Name: string)
                             Data.Name = UpdateData.Name or Data.Name
                             Data.AltText = UpdateData.AltText or Data.AltText
                             DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                            Dropdown.Name = Data.Name
                             if UpdateData.Options then
                                 DropdownLibrary.ClearOptions()
                                 DropdownLibrary.AddOptions(UpdateData.Options)
@@ -1228,6 +1247,7 @@ Env.MCreateUi = function(Name: string)
                         TextBoxLibrary.Update = function(UpdateCallback, UpdateData)
                             Callback = UpdateCallback or Callback
                             TextboxName.Text = UpdateData.Name or Data.Name
+                            Textbox.Name = UpdateData.Name or Data.Name
                             Input.Text = UpdateData.Text or Data.Text
                         end
 

@@ -177,6 +177,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			LatchCFrames = {},
 			ChassisTransparency = {},
 			Wheels = {},
+			WheelSize = {},
 			RealWheels = {},
 			RelativeWheels = {},
 			RelativeThrust = {},
@@ -207,7 +208,7 @@ end
 
 Importer.Data.ImportPacket.UpdateModel = function(self, Model)
 	if self.Data.Initialized then
-		return "This config has already been initialized, you can not update it's base model\nWould you like to reload the config?", Vector2.new(600, 800)
+		return "This config has already been initialized, you can not update it's base model\n\nWould you like to reload the config?", Vector2.new(600, 800)
 	end
 	self.Settings.Model = Model
 	return "Model Updated", Vector2.new(0, 900)
@@ -244,6 +245,9 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 	end
 
 	self.Data.SeatCF = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(self.Data.Chassis.Seat.CFrame)
+
+	self.Data.WheelSize.Wheel = self.Data.Chassis.WheelFrontLeft.Wheel.Size
+	self.Data.WheelSize.Rim = self.Data.Chassis.WheelFrontLeft.Rim.Size
 
 	local ReplicatedStorageClone = self:LoadModel()
 
@@ -380,6 +384,8 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 					local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
 					local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 					Thrust.Position = ThrustCF.Position
+					self.Data.Chassis[v.Name].Rim.Size = self.Data.WheelSize.Rim
+					self.Data.Chassis[v.Name].Wheel.Size = self.Data.WheelSize.Wheel
 				end
 			end
 			for i,v in next, self.Data.ChassisTransparency do
@@ -393,12 +399,12 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			end
 			self.Data.Chassis.Seat.Weld.C0 = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.SeatCF):Inverse() * self.Data.Chassis.PrimaryPart.CFrame
 		end
-		if not Workspace.CurrentCamera.CameraSubject or not Workspace.CurrentCamera.CameraSubject.Parent then
-			Workspace.CurrentCamera.CameraSubject = self.Data.Chassis.Parent and self.Data.Chassis.Camera or Players.LocalPlayer.Character.Humanoid
-		end
 		self.Data.Model:Destroy()
 		self.Data.Button.Destroy()
 		Importer.Data.Packets[self.Data.Key] = nil
+		if not Workspace.CurrentCamera.CameraSubject.Parent then
+			Workspace.CurrentCamera.CameraSubject = self.Data.Chassis.Parent and self.Data.Chassis.Camera or Players.LocalPlayer.Character.Humanoid
+		end
 	end
 
 	Workspace.Vehicles.DescendantRemoving:Connect(function(descendant)

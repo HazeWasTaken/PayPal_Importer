@@ -565,6 +565,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			LatchCFrames = {},
 			ChassisTransparency = {},
 			Wheels = {},
+			WheelSize = {},
 			RealWheels = {},
 			RelativeWheels = {},
 			RelativeThrust = {},
@@ -595,7 +596,7 @@ end
 
 Importer.Data.ImportPacket.UpdateModel = function(self, Model)
 	if self.Data.Initialized then
-		return "This config has already been initialized, you can not update it's base model\nWould you like to reload the config?", Vector2.new(600, 800)
+		return "This config has already been initialized, you can not update it's base model\n\nWould you like to reload the config?", Vector2.new(600, 800)
 	end
 	self.Settings.Model = Model
 	return "Model Updated", Vector2.new(0, 900)
@@ -632,6 +633,9 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 	end
 
 	self.Data.SeatCF = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(self.Data.Chassis.Seat.CFrame)
+
+	self.Data.WheelSize.Wheel = self.Data.Chassis.WheelFrontLeft.Wheel.Size
+	self.Data.WheelSize.Rim = self.Data.Chassis.WheelFrontLeft.Rim.Size
 
 	local ReplicatedStorageClone = self:LoadModel()
 
@@ -768,6 +772,8 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 					local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
 					local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 					Thrust.Position = ThrustCF.Position
+					self.Data.Chassis[v.Name].Rim.Size = self.Data.WheelSize.Rim
+					self.Data.Chassis[v.Name].Wheel.Size = self.Data.WheelSize.Wheel
 				end
 			end
 			for i,v in next, self.Data.ChassisTransparency do
@@ -781,12 +787,12 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			end
 			self.Data.Chassis.Seat.Weld.C0 = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.SeatCF):Inverse() * self.Data.Chassis.PrimaryPart.CFrame
 		end
-		if not Workspace.CurrentCamera.CameraSubject or not Workspace.CurrentCamera.CameraSubject.Parent then
-			Workspace.CurrentCamera.CameraSubject = self.Data.Chassis.Parent and self.Data.Chassis.Camera or Players.LocalPlayer.Character.Humanoid
-		end
 		self.Data.Model:Destroy()
 		self.Data.Button.Destroy()
 		Importer.Data.Packets[self.Data.Key] = nil
+		if not Workspace.CurrentCamera.CameraSubject.Parent then
+			Workspace.CurrentCamera.CameraSubject = self.Data.Chassis.Parent and self.Data.Chassis.Camera or Players.LocalPlayer.Character.Humanoid
+		end
 	end
 
 	Workspace.Vehicles.DescendantRemoving:Connect(function(descendant)
@@ -930,6 +936,70 @@ for i, v in next, getgc(true) do
 end
 
 return Initialize.Module
+end,
+['Modules/Packet/Packet.lua'] = function()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Packet, Env = {
+	Module = {
+		Functions = {},
+		Data = {}
+	},
+	Data = {
+        Vehicle = require(ReplicatedStorage.Game.Vehicle),
+        PrevData = {}
+    },
+	Functions = {}
+}, {}
+
+local LMeta = {
+	__index = function(self: table, index: string)
+		return Env[index]
+	end
+}
+
+local MMeta = {
+	__index = function(self: table, index: string)
+		return Env["M" .. index]
+	end
+}
+
+setmetatable(Packet.Functions, LMeta)
+setmetatable(Packet.Module.Functions, MMeta)
+
+Env.ReadTable = function(Data, PacketData, Original, Count)
+    for i, v in next, PacketData do
+        if type(v) == "table" then
+            table.insert(Data, {
+                Index = Original .. " " .. tostring(i) .. " open",
+                Name = string.rep("		", Count) .. tostring(i),
+                Value = "{"
+            })
+            Packet.Functions.ReadTable(Data, v, tostring(i), Count + 1)
+            table.insert(Data, {
+                Index = Original .. " " .. tostring(i) .. " close",
+                Name = string.rep("		", Count) ..  "}",
+                Value = tostring(i)
+            })
+        else
+            table.insert(Data, {
+                Index = Original .. tostring(i),
+                Name = string.rep("		", Count) .. tostring(i),
+                Value = tostring(v) .. " (" .. type(v) .. ")"
+            })
+        end
+    end
+end
+
+Env.MGetPacketData = function()
+    local Data, VehiclePacket = {}, Packet.Data.Vehicle.GetLocalVehiclePacket() or {}
+
+    Packet.Functions.ReadTable(Data, VehiclePacket, "", 0)
+
+    return Data
+end
+
+return Packet.Module
 end,
 ['Modules/ReadWrite/ReadWrite.lua'] = function()
 local HttpService = game:GetService("HttpService")
@@ -1561,10 +1631,8 @@ Env.MCreateUi = function(Name: string)
                 RunService.Heartbeat:Connect(function()
                     for i,v in next, Inputs do
                         if string.find(v.Name:lower(), Input1.Text:lower()) then
-                            v.Parent.Visible = true
                             v.Visible = true
                         else
-                            v.Parent.Visible = false
                             v.Visible = false
                         end
                     end
@@ -1709,13 +1777,20 @@ Env.MCreateUi = function(Name: string)
                         local ButtonLibrary = {}
 
                         ButtonLibrary.Update = function(UpdateCallback, UpdateData: table)
-                            ButtonName.Text = UpdateData.Name or Data.Name
+                            Data.Name = UpdateData.Name or Data.Name
                             Callback = UpdateCallback or Callback
+                            Button.Name = Data.Name
+                            ButtonName.Text = Data.Name
+                            Callback = Callback
                         end
 
                         ButtonLibrary.Destroy = function()
                             table.remove(Inputs, table.find(Inputs, Button))
                             Button:Destroy()
+                        end
+
+                        ButtonLibrary.GetData = function(Key)
+                            return Data[Key]
                         end
 
                         return ButtonLibrary
@@ -1755,6 +1830,7 @@ Env.MCreateUi = function(Name: string)
                         LabelName.Font = Enum.Font.Gotham
                         LabelName.TextXAlignment = Enum.TextXAlignment.Left
                         LabelName.Parent = Button
+                        LabelName.ClipsDescendants = true
 
                         local LabelIcon = Instance.new("ImageLabel")
                         LabelIcon.Name = "ButtonIcon"
@@ -1780,7 +1856,19 @@ Env.MCreateUi = function(Name: string)
                         local LabelLibrary = {}
 
                         LabelLibrary.Update = function(UpdateData: table)
-                            LabelName.Text = (UpdateData.Name or Data.Name) .. " : " .. (UpdateData.Text or Data.Text)
+                            Data.Name = UpdateData.Name or Data.Name
+                            Data.Text = UpdateData.Text or Data.Text
+                            Button.Name = UpdateData.Name or Data.Name
+                            LabelName.Text = Data.Name .. " : " .. Data.Text
+                        end
+
+                        LabelLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Button))
+                            Button:Destroy()
+                        end
+
+                        LabelLibrary.GetData = function(Key)
+                            return Data[Key]
                         end
 
                         return LabelLibrary
@@ -2117,6 +2205,7 @@ Env.MCreateUi = function(Name: string)
                             Data.Name = UpdateData.Name or Data.Name
                             Data.AltText = UpdateData.AltText or Data.AltText
                             DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                            Dropdown.Name = Data.Name
                             if UpdateData.Options then
                                 DropdownLibrary.ClearOptions()
                                 DropdownLibrary.AddOptions(UpdateData.Options)
@@ -2238,6 +2327,7 @@ Env.MCreateUi = function(Name: string)
                         TextBoxLibrary.Update = function(UpdateCallback, UpdateData)
                             Callback = UpdateCallback or Callback
                             TextboxName.Text = UpdateData.Name or Data.Name
+                            Textbox.Name = UpdateData.Name or Data.Name
                             Input.Text = UpdateData.Text or Data.Text
                         end
 
@@ -2666,11 +2756,13 @@ end,
 ['Ui/Create.lua'] = function()
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
 local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 local Importer = import("Modules/Importer/Importer.lua")
+local Packet = import("Modules/Packet/Packet.lua")
 
 local CreateUi, Env = {
 	Module = {
@@ -2701,6 +2793,13 @@ local MMeta = {
 
 setmetatable(CreateUi.Functions, LMeta)
 setmetatable(CreateUi.Module.Functions, MMeta)
+
+Env.ResetSelector = function()
+	CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = ""})
+	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", AltText = ""})
+	CreateUi.Data.GlobalUi.Settings.Height.Update(function() end, {Text = "0"})
+	CreateUi.Data.GlobalUi.Manage.Init.Update(function() end,{Name = "Initialize"})
+end
 
 Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	local Button = Section.CreateButton(function() end, {Name = "Initialize"})
@@ -2787,6 +2886,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 					Close = true,
 					Callback = function()
 						Packet.Data.Destroy()
+						CreateUi.Functions.ResetSelector()
 					end
 				} or nil),
 				{
@@ -2808,6 +2908,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 					Callback = function() end
 				}
 			})
+			CreateUi.Functions.ResetSelector()
 		end,{Name = "Initialize"})
 	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
@@ -2912,10 +3013,53 @@ Env.CreateImportCategory = function(Guild) -- Importer Category
 	return Category
 end
 
-Env.CreatePacketChannel = function(Category) -- Packet Channel
-	local CreateChannel = Category.CreateChannel("Packet")
+Env.FindInPacket = function(Data, Index)
+	for i, v in next, Data do
+		if v.Index == Index then
+			return true
+		end
+	end
+end
 
-	return CreateChannel
+Env.UpdatePacket = function(Section)
+	local Labels = {}
+	RunService.Heartbeat:Connect(function()
+		local Data = Packet.Functions.GetPacketData()
+		for i, v in next, Data do
+			if Labels[v.Index] and Labels[v.Index].GetData("Text") ~= v.Value  then
+				Labels[v.Index].Update({Text = v.Value})
+			end
+			if not Labels[v.Index] then
+				Labels[v.Index] = Section.CreateLabel({
+					Name = v.Name,
+					Index = v.Index,
+					Text = v.Value
+				})
+			end
+		end
+		for i,v in next, Labels do
+			if not CreateUi.Functions.FindInPacket(Data, v.GetData("Index")) then
+				v.Destroy()
+				Labels[i] = nil
+			end
+		end
+	end)
+end
+
+Env.CreatePacketSection = function(Channel)
+	local Section = Channel.CreateSection("Packet")
+
+	CreateUi.Functions.UpdatePacket(Section)
+
+	return Section
+end
+
+Env.CreatePacketChannel = function(Category) -- Packet Channel
+	local Channel = Category.CreateChannel("Packet")
+
+	CreateUi.Functions.CreatePacketSection(Channel)
+
+	return Channel
 end
 
 Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
