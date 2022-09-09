@@ -8,13 +8,13 @@ local Initialize, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }

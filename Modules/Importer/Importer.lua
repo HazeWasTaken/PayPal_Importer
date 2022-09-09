@@ -25,13 +25,13 @@ local Importer, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -118,17 +118,20 @@ Importer.Data.Vehicle.GetLocalVehicleModel = function()
     return GetLocalVehicleModel()
 end
 
-getDefaultVehicleModel = hookfunction(Importer.Functions.getDefaultVehicleModel, function(Make, Type)
-    local CollectionService = game:GetService("CollectionService")
+pcall(function()
+	getDefaultVehicleModel = hookfunction(Importer.Functions.getDefaultVehicleModel, function(Make, Type)
+		local CollectionService = game:GetService("CollectionService")
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-    local CallingFunc = debug.getinfo(2).name
-    if CallingFunc and (string.find(CallingFunc, "GetInstance") or string.find(CallingFunc, "getInstForSelection")) then
-		local Packet = Importer.Data.Vehicle.GetLocalVehiclePacket()
-		if Packet and CollectionService:HasTag(Packet.Model, "Overlayed") and Make == Packet.Make then
-        	return getDefaultVehicleModel(Importer.Data.Packets[Packet.Model:GetAttribute("Key")].Data.Model.Name, "Chassis")
+		local CallingFunc = debug.getinfo(2).name
+		if CallingFunc and (string.find(CallingFunc, "GetInstance") or string.find(CallingFunc, "getInstForSelection")) then
+			local Packet = require(ReplicatedStorage.Game.Vehicle).GetLocalVehiclePacket()
+			if Packet and CollectionService:HasTag(Packet.Model, "Overlayed") and Make == Packet.Make then
+				return getDefaultVehicleModel(Importer.Data.Packets[Packet.Model:GetAttribute("Key")].Data.Model.Name, "Chassis")
+			end
 		end
-    end
-    return getDefaultVehicleModel(Make, Type)
+		return getDefaultVehicleModel(Make, Type)
+	end)
 end)
 
 Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(function()
@@ -170,6 +173,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			Model = nil,
 			Height = Data.Height
 		},
+		VehiclePackets = {},
 		Data = {
 			Key = Data.Key or math.ceil(os.clock() + math.random(1, 200)),
 			Initialized = false,
@@ -222,6 +226,24 @@ Importer.Data.ImportPacket.LoadModel = function(self)
     local Model = game:GetObjects(getcustomasset and getcustomasset(self.Settings.Data) or "rbxassetid://" .. self.Settings.Data)[1]
 
     return Model
+end
+
+Importer.Data.ImportPacket.PacketValue = function(self, Index, Type)
+	self.VehiclePackets[Index] = {
+		Index = Index,
+		Type = Type
+	}
+end
+
+Importer.Data.ImportPacket.NewPacketValue = function(self, Data, Value)
+	if Data.Type == "number" then
+		Value = tonumber(Value)
+	elseif Data.Type == "boolean" then
+		Value = Value:lower() == "true" or false
+	elseif Data.Type == "table" then
+		Value = HttpService:JSONDecode(Value)
+	end
+	self.VehiclePackets[Data.Index].NewValue = Value
 end
 
 Importer.Data.ImportPacket.InitPacket = function(self)
@@ -421,6 +443,8 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 end
 
 Importer.Data.ImportPacket.Update = function(self)
+	local Packet = Importer.Data.Vehicle.GetLocalVehiclePacket()
+
 	local HasPlayer = self.Data.Chassis:FindFirstChild("Seat") and self.Data.Chassis.Seat:FindFirstChild("PlayerName") and self.Data.Chassis.Seat.PlayerName.Value == Players.LocalPlayer.Name
 
 	for i, v in next, self.Data.Chassis:GetDescendants() do
@@ -504,6 +528,27 @@ Importer.Data.ImportPacket.Update = function(self)
 			self.Data.Chassis[v.Name].Rim.Size = v.Rim.Size
 			v.Wheel.CFrame = CFrame.new(table.unpack(WheelCFrame))
 			self.Data.Chassis[v.Name].Wheel.Size = v.Wheel.Size
+		end
+	end
+
+
+	if Packet and Packet.Model == self.Data.Chassis then
+		for i, v in next, self.VehiclePackets do
+			if not v.NewValue then
+				continue
+			end
+			local Indexs, NewIndex = string.split(v.Index, "."), Packet or {}
+			Indexs[1] = nil
+			for index, value in next, Indexs do
+				if index == #Indexs then
+					break
+				end
+				if not NewIndex[value] then
+					NewIndex[value] = {}
+				end
+				NewIndex = NewIndex[value]
+			end
+			NewIndex[Indexs[#Indexs]] = v.NewValue
 		end
 	end
 end

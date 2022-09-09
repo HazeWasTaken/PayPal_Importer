@@ -15,13 +15,13 @@ local ReadWrite, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -44,6 +44,7 @@ end
 Env.MReadVehicles = function()
 	local Vehicles = {}
 	for i,v in next, listfiles("./PayPal/Vehicles") do
+		v = string.gsub(v:gsub([[./PayPal]], "PayPal"), "/", [[\]])
 		table.insert(Vehicles, {
 			Name = string.gsub(string.split(v, [[\]])[3], ".rbxm", ""),
 			Data = v,

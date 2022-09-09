@@ -16,6 +16,7 @@ local CreateUi, Env = {
 	Data = {
 		GlobalUi = {
 			ConfigList = {},
+			Packets = {},
 			Manage = {},
 			Settings = {}
 		}
@@ -24,13 +25,13 @@ local CreateUi, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -42,6 +43,12 @@ Env.ResetSelector = function()
 	CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = ""})
 	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", AltText = ""})
 	CreateUi.Data.GlobalUi.Settings.Height.Update(function() end, {Text = "0"})
+	CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
+	CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function() end, {Text = "Packet", AltText = ""})
+	Env.GetConfig = function()
+		return
+	end
+	CreateUi.Data.GlobalUi.Packets.NewValueTextBox.Update(function() end, {Text = ""})
 	CreateUi.Data.GlobalUi.Manage.Init.Update(function() end,{Name = "Initialize"})
 end
 
@@ -57,6 +64,43 @@ Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	local Section = Channel.CreateSection("Manage Config")
 
 	CreateUi.Functions.CreateInitConfigButton(Section)
+
+	return Section
+end
+
+Env.CreateNewPacketValue = function(Section)
+	local TextBox = Section.CreateTextBox(function(Text) end, {Name = "New Packet Value", Text = ""})
+
+	CreateUi.Data.GlobalUi.Packets.NewValueTextBox = TextBox
+
+	return TextBox
+end
+
+Env.CreateSelectedPacketType = function(Section) -- Config Packet Type Label
+	local Lable = Section.CreateLabel({
+		Name = "Selected Packet Type",
+		Text = ""
+	})
+
+	CreateUi.Data.GlobalUi.Packets.TypeLabel = Lable
+
+	return Lable
+end
+
+Env.CreatePacketListDropDown = function(Section) -- Config Packet Dropdown
+	local Dropdown = Section.CreateDropdown(function() end, {Name = "Packet", AltText = "", Options = {}})
+
+	CreateUi.Data.GlobalUi.Packets.Dropdown = Dropdown
+
+	return Dropdown
+end
+
+Env.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
+	local Section = Channel.CreateSection("Config Packets")
+
+	CreateUi.Functions.CreatePacketListDropDown(Section)
+	CreateUi.Functions.CreateSelectedPacketType(Section)
+	CreateUi.Functions.CreateNewPacketValue(Section)
 
 	return Section
 end
@@ -83,10 +127,14 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 			Name = Vehicle.Name .. (PlayerName ~= "" and " : ".. PlayerName or ""),
 			Data = Vehicle,
 			Enter = function()
-				Vehicle.BoundingBox.Transparency = 0
+				if BoundingBox then
+					Vehicle.BoundingBox.Transparency = 0
+				end
 			end,
 			Leave = function()
-				Vehicle.BoundingBox.Transparency = 1
+				if BoundingBox then
+					Vehicle.BoundingBox.Transparency = 1
+				end
 			end
 		})
 	end
@@ -143,6 +191,28 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
+		local Options = {}
+		for i, v in next, Packet.VehiclePackets do
+			local Name = string.split(v.Index, ".")
+			Name = Name[#Name]
+			table.insert(Options, {
+				Name = Name,
+				Data = v,
+				Enter = function() end,
+				Leave = function() end
+			})
+		end
+		CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
+		CreateUi.Data.GlobalUi.Packets.Dropdown.AddOptions(Options)
+		CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function(Data)
+			CreateUi.Data.GlobalUi.Packets.TypeLabel.Update({Text = Data.Type})
+			CreateUi.Data.GlobalUi.Packets.NewValueTextBox.Update(function(Text)
+				Packet:NewPacketValue(Data, Text)
+			end, {})
+		end, {})
+		Env.GetConfig = function()
+			return Packet
+		end
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
 			local Output, Offset =  Packet:InitPacket()
 			local Notif = Category.CreateNotif("Initialization", Offset, Output, {
@@ -244,6 +314,7 @@ Env.CreateImportChannel = function(Category) -- Importer Channel
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
 	CreateUi.Functions.CreateConfigListSection(Channel)
 	CreateUi.Functions.CreateConfigSettingsSection(Channel)
+	CreateUi.Functions.CreateConfigPacketsSection(Channel)
 	CreateUi.Functions.CreateManageConfigSection(Channel)
 
 	return Channel
@@ -265,35 +336,81 @@ Env.FindInPacket = function(Data, Index)
 	end
 end
 
-Env.UpdatePacket = function(Section)
-	local Labels = {}
+Env.GetConfig = function()
+	return
+end
+
+Env.ModiyPacket = function(Category, v)
+	local Config = CreateUi.Functions.GetConfig()
+	local Notif = Category.CreateNotif(not Config and "No config selected" or "Model Update", Vector2.new(200, 300), not Config and "Please select a config" or v.Type == "Instance" and "Modifying this type is not supported" or "Would you like to modify:\n\n" .. v.Dir, {
+		{
+			Text = "Ok",
+			Close = true,
+			Callback = Config and function()
+				if v.Type == "Instance" then
+					return
+				end
+				Config:PacketValue(v.Dir, v.Type)
+				local Options = {}
+				for index, value in next, Config.VehiclePackets do
+					local Name = string.split(value.Index, ".")
+					Name = Name[#Name]
+					table.insert(Options, {
+						Name = Name,
+						Data = value,
+						Enter = function() end,
+						Leave = function() end
+					})
+				end
+				CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
+				CreateUi.Data.GlobalUi.Packets.Dropdown.AddOptions(Options)
+			end or function() end
+		} or nil,
+		v.Type ~= "Instance" and {
+			Text = "Cancel",
+			Close = true,
+			Callback = function() end
+		} or nil
+	})
+end
+
+Env.UpdatePacket = function(Category, Section)
+	local Displays = {}
 	RunService.Heartbeat:Connect(function()
 		local Data = Packet.Functions.GetPacketData()
 		for i, v in next, Data do
-			if Labels[v.Index] and Labels[v.Index].GetData("Text") ~= v.Value  then
-				Labels[v.Index].Update({Text = v.Value})
+			local Text = Displays[v.Index] and Displays[v.Index].GetData("Text")
+			if Displays[v.Index] and Text ~= v.Value and Text ~= "{" then
+				Displays[v.Index].Update(nil, {Text = v.Value})
 			end
-			if not Labels[v.Index] then
-				Labels[v.Index] = Section.CreateLabel({
+			if not Displays[v.Index] then
+				Displays[v.Index] = Section.CreateAdvancedDisplay(function()
+					CreateUi.Functions.ModiyPacket(Category, v)
+				end,
+				{
 					Name = v.Name,
 					Index = v.Index,
-					Text = v.Value
+					Text = v.Value,
+					Parent = Displays[v.Parent],
+					AltCallback = function(Open)
+						Displays[v.Index].Update(nil, {Text = Open and "{" or "{...}"})
+					end
 				})
 			end
 		end
-		for i,v in next, Labels do
+		for i,v in next, Displays do
 			if not CreateUi.Functions.FindInPacket(Data, v.GetData("Index")) then
 				v.Destroy()
-				Labels[i] = nil
+				Displays[i] = nil
 			end
 		end
 	end)
 end
 
-Env.CreatePacketSection = function(Channel)
+Env.CreatePacketSection = function(Category, Channel)
 	local Section = Channel.CreateSection("Packet")
 
-	CreateUi.Functions.UpdatePacket(Section)
+	CreateUi.Functions.UpdatePacket(Category, Section)
 
 	return Section
 end
@@ -301,7 +418,7 @@ end
 Env.CreatePacketChannel = function(Category) -- Packet Channel
 	local Channel = Category.CreateChannel("Packet")
 
-	CreateUi.Functions.CreatePacketSection(Channel)
+	CreateUi.Functions.CreatePacketSection(Category, Channel)
 
 	return Channel
 end

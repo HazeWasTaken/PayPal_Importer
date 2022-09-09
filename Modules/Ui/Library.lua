@@ -84,7 +84,7 @@ Env.dragify = function(Frame) -- stole from v3rm :kek:
     )
 end
 
-Env.MCreateUi = function(Name: string)
+Env.MCreateUi = function(Name)
     local Swift = Instance.new("ScreenGui")
     Swift.Name = "Swift"
     Swift.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -175,7 +175,7 @@ Env.MCreateUi = function(Name: string)
         Channel_Buttons = {},
     }
 
-    GuildLibrary.CreateGuild = function(Name: string, Icon: string, Banner: string)
+    GuildLibrary.CreateGuild = function(Name, Icon, Banner)
         local Guild = {}
 
         local ServerName = Instance.new("Frame")
@@ -286,7 +286,7 @@ Env.MCreateUi = function(Name: string)
 
         local CategoryLibrary = {}
 
-        CategoryLibrary.CreateCategory = function(Name: string)
+        CategoryLibrary.CreateCategory = function(Name)
             local Category = Instance.new("Frame")
             Category.Name = "Category"
             Category.Parent = TabSelection
@@ -394,7 +394,7 @@ Env.MCreateUi = function(Name: string)
 
             local ChannelLibrary = {}
 
-            ChannelLibrary.CreateChannel = function(Name: string)
+            ChannelLibrary.CreateChannel = function(Name)
                 local Sections = {}
                 local Inputs = {}
 
@@ -588,7 +588,7 @@ Env.MCreateUi = function(Name: string)
 
                 local SectionLibrary = {}
 
-                SectionLibrary.CreateSection = function(Name: string)
+                SectionLibrary.CreateSection = function(Name)
                     local Section = Instance.new("Frame")
                     Section.Name = "Section"
                     Section.Size = UDim2.new(0, 398, 0, 22)
@@ -631,7 +631,7 @@ Env.MCreateUi = function(Name: string)
 
                     local InputLibrary = {}
 
-                    InputLibrary.CreateButton = function(Callback, Data: table)
+                    InputLibrary.CreateButton = function(Callback, Data)
                         local Button = Instance.new("TextButton")
                         Button.Name = Data.Name
                         Button.Size = UDim2.new(0, 389, 0, 26)
@@ -696,7 +696,7 @@ Env.MCreateUi = function(Name: string)
 
                         local ButtonLibrary = {}
 
-                        ButtonLibrary.Update = function(UpdateCallback, UpdateData: table)
+                        ButtonLibrary.Update = function(UpdateCallback, UpdateData)
                             Data.Name = UpdateData.Name or Data.Name
                             Callback = UpdateCallback or Callback
                             Button.Name = Data.Name
@@ -716,7 +716,7 @@ Env.MCreateUi = function(Name: string)
                         return ButtonLibrary
                     end
 
-                    InputLibrary.CreateLabel = function(Data: table)
+                    InputLibrary.CreateLabel = function(Data)
                         local Button = Instance.new("TextButton")
                         Button.Name = Data.Name
                         Button.Size = UDim2.new(0, 389, 0, 26)
@@ -775,7 +775,7 @@ Env.MCreateUi = function(Name: string)
 
                         local LabelLibrary = {}
 
-                        LabelLibrary.Update = function(UpdateData: table)
+                        LabelLibrary.Update = function(UpdateData)
                             Data.Name = UpdateData.Name or Data.Name
                             Data.Text = UpdateData.Text or Data.Text
                             Button.Name = UpdateData.Name or Data.Name
@@ -794,7 +794,144 @@ Env.MCreateUi = function(Name: string)
                         return LabelLibrary
                     end
 
-                    InputLibrary.CreateToggle = function(Callback, Data: table)
+                    InputLibrary.CreateAdvancedDisplay = function(Callback, Data)
+                        local Button = Instance.new("TextButton")
+                        Button.Name = Data.Name
+                        Button.Size = UDim2.new(0, 389, 0, 26)
+                        Button.Position = UDim2.new(0.0104167, 0, 0.297619, 0)
+                        Button.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+                        Button.AutoButtonColor = false
+                        Button.FontSize = Enum.FontSize.Size11
+                        Button.TextSize = 11
+                        Button.RichText = true
+                        Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        Button.Text = ""
+                        Button.Font = Enum.Font.Gotham
+                        Button.Parent = Section
+                        Button.Visible = not (Data.Parent and Data.Parent.Visible == false)
+                        table.insert(Data.Parent and Data.Parent.Children or Inputs, Button)
+
+                        local UICorner2 = Instance.new("UICorner")
+                        UICorner2.CornerRadius = UDim.new(0, 5)
+                        UICorner2.Parent = Button
+
+                        local DisplayName = Instance.new("TextLabel")
+                        DisplayName.Name = "DisplayName"
+                        DisplayName.Size = UDim2.new(0, 345, 0, 26)
+                        DisplayName.BackgroundTransparency = 1
+                        DisplayName.Position = UDim2.new(0.0208333, 0, 0, 0)
+                        DisplayName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        DisplayName.FontSize = Enum.FontSize.Size11
+                        DisplayName.TextSize = 11
+                        DisplayName.RichText = true
+                        DisplayName.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        DisplayName.Text = Data.Name .. " : " .. Data.Text
+                        DisplayName.Font = Enum.Font.Gotham
+                        DisplayName.TextXAlignment = Enum.TextXAlignment.Left
+                        DisplayName.Parent = Button
+                        DisplayName.ClipsDescendants = true
+
+                        local DisplayIcon = Instance.new("ImageButton")
+                        DisplayIcon.Name = "DisplayIcon"
+                        DisplayIcon.Size = UDim2.new(0, 20, 0, 20)
+                        DisplayIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
+                        DisplayIcon.BackgroundTransparency = 1
+                        DisplayIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
+                        DisplayIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        DisplayIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
+                        DisplayIcon.ImageRectOffset = Vector2.new(300, 300)
+                        DisplayIcon.ImageRectSize = Vector2.new(100, 100)
+                        DisplayIcon.Image = "rbxassetid://6764432293"
+                        DisplayIcon.Visible = false
+                        DisplayIcon.Parent = Button
+
+                        Button.MouseEnter:Connect(function(x, y)
+                            TweenService:Create(DisplayIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                        end)
+
+                        Button.MouseLeave:Connect(function(x, y)
+                            TweenService:Create(DisplayIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
+                        end)
+
+                        Button.MouseButton1Down:Connect(function(x, y)
+                            TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                            task.wait(.126)
+                            TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(29, 29, 29)}):Play()
+                            Callback()
+                        end)
+
+                        if Data.Parent then
+                            Data.Parent.ChildAdded()
+                        else
+                            DisplayIcon.Visible = false
+                        end
+
+                        local DisplayLibrary = {
+                            Visible = false,
+                            Children = {}
+                        }
+
+                        DisplayLibrary.ChildAdded = function(Update)
+                            if not Update then
+                                DisplayIcon.Visible = true
+                            end
+                            local NewName = Data.Name
+                            for i, v in next, DisplayLibrary.Children do
+                                NewName = NewName .. v.Name
+                            end
+                            Button.Name = NewName
+                            if Data.Parent then
+                                Data.Parent.ChildAdded()
+                            end
+                        end
+
+                        DisplayIcon.MouseButton1Down:Connect(function(x, y)
+                            DisplayLibrary.Visible = not DisplayLibrary.Visible
+                            DisplayIcon.ImageRectOffset = DisplayLibrary.Visible and Vector2.new(700, 900) or Vector2.new(300, 300)
+                            Data.AltCallback(DisplayLibrary.Visible)
+                            for i, v in next, DisplayLibrary.Children do
+                                v.Visible = DisplayLibrary.Visible
+                            end
+                        end)
+
+                        Button:GetPropertyChangedSignal("Visible"):Connect(function()
+                            if Button.Visible then
+                                for i, v in next, DisplayLibrary.Children do
+                                    v.Visible = DisplayLibrary.Visible
+                                end
+                            else
+                                for i, v in next, DisplayLibrary.Children do
+                                    v.Visible = false
+                                end
+                            end
+                        end)
+
+                        DisplayLibrary.Update = function(UpdateCallback, UpdateData)
+                            Data.Name = UpdateData.Name or Data.Name
+                            Data.Text = UpdateData.Text or Data.Text
+                            Callback = UpdateCallback or Callback
+                            Button.Name = UpdateData.Name or Button.Name
+                            DisplayName.Text = Data.Name .. " : " .. Data.Text
+
+                            DisplayLibrary.ChildAdded(true)
+                        end
+
+                        DisplayLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Button))
+                            Button:Destroy()
+                            if Data.Parent then
+                                Data.Parent.ChildAdded()
+                            end
+                        end
+
+                        DisplayLibrary.GetData = function(Key)
+                            return Data[Key]
+                        end
+
+                        return DisplayLibrary
+                    end
+
+                    InputLibrary.CreateToggle = function(Callback, Data)
                         local Toggle = Instance.new("TextButton")
                         Toggle.Name = Data.Name
                         Toggle.Size = UDim2.new(0, 389, 0, 26)
@@ -809,11 +946,11 @@ Env.MCreateUi = function(Name: string)
                         Toggle.Font = Enum.Font.Gotham
                         Toggle.Parent = Section
                         table.insert(Inputs, Toggle)
-                        
+
                         local UICorner3 = Instance.new("UICorner")
                         UICorner3.CornerRadius = UDim.new(0, 5)
                         UICorner3.Parent = Toggle
-                        
+
                         local ToggleName = Instance.new("TextLabel")
                         ToggleName.Name = "ToggleName"
                         ToggleName.Size = UDim2.new(0, 345, 0, 26)
@@ -875,7 +1012,7 @@ Env.MCreateUi = function(Name: string)
                         end)
                     end
 
-                    InputLibrary.CreateDropdown = function(Callback, Data: table)
+                    InputLibrary.CreateDropdown = function(Callback, Data)
                         local Dropdown = Instance.new("TextButton")
                         Dropdown.Name = Data.Name
                         Dropdown.Size = UDim2.new(0, 389, 0, 26)
@@ -1138,7 +1275,7 @@ Env.MCreateUi = function(Name: string)
                         return DropdownLibrary
                     end
 
-                    InputLibrary.CreateTextBox = function(Callback, Data: table)
+                    InputLibrary.CreateTextBox = function(Callback, Data)
                         local Textbox = Instance.new("Frame")
                         Textbox.Name = Data.Name
                         Textbox.Size = UDim2.new(0, 389, 0, 26)
@@ -1254,7 +1391,7 @@ Env.MCreateUi = function(Name: string)
                         return TextBoxLibrary
                     end
 
-                    InputLibrary.CreateSlider = function(Callback, Data: table)
+                    InputLibrary.CreateSlider = function(Callback, Data)
                         local Slider = Instance.new("TextButton")
                         Slider.Name = Data.Name
                         Slider.Size = UDim2.new(0, 389, 0, 26)
@@ -1394,7 +1531,7 @@ Env.MCreateUi = function(Name: string)
                         end)
                     end
 
-                    InputLibrary.CreateKeyBind = function(Callback, Data: table)
+                    InputLibrary.CreateKeyBind = function(Callback, Data)
                         local Textbox = Instance.new("Frame")
                         Textbox.Name = Data.Name
                         Textbox.Size = UDim2.new(0, 389, 0, 26)
@@ -1515,7 +1652,7 @@ Env.MCreateUi = function(Name: string)
                 return SectionLibrary
             end
 
-            ChannelLibrary.CreateNotif = function(Name: string, ImageRectOffset: Vector2, TextDescription: string, Options: string)
+            ChannelLibrary.CreateNotif = function(Name, ImageRectOffset, TextDescription, Options)
                 local Notif = Instance.new("Frame")
                 Notif.Name = "Notif"
                 Notif.Size = UDim2.new(1, 0, 1, 0)

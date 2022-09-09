@@ -37,13 +37,13 @@ local VehicleChecks, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -100,13 +100,13 @@ local Customization, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -413,13 +413,13 @@ local Importer, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -506,17 +506,20 @@ Importer.Data.Vehicle.GetLocalVehicleModel = function()
     return GetLocalVehicleModel()
 end
 
-getDefaultVehicleModel = hookfunction(Importer.Functions.getDefaultVehicleModel, function(Make, Type)
-    local CollectionService = game:GetService("CollectionService")
+pcall(function()
+	getDefaultVehicleModel = hookfunction(Importer.Functions.getDefaultVehicleModel, function(Make, Type)
+		local CollectionService = game:GetService("CollectionService")
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-    local CallingFunc = debug.getinfo(2).name
-    if CallingFunc and (string.find(CallingFunc, "GetInstance") or string.find(CallingFunc, "getInstForSelection")) then
-		local Packet = Importer.Data.Vehicle.GetLocalVehiclePacket()
-		if Packet and CollectionService:HasTag(Packet.Model, "Overlayed") and Make == Packet.Make then
-        	return getDefaultVehicleModel(Importer.Data.Packets[Packet.Model:GetAttribute("Key")].Data.Model.Name, "Chassis")
+		local CallingFunc = debug.getinfo(2).name
+		if CallingFunc and (string.find(CallingFunc, "GetInstance") or string.find(CallingFunc, "getInstForSelection")) then
+			local Packet = require(ReplicatedStorage.Game.Vehicle).GetLocalVehiclePacket()
+			if Packet and CollectionService:HasTag(Packet.Model, "Overlayed") and Make == Packet.Make then
+				return getDefaultVehicleModel(Importer.Data.Packets[Packet.Model:GetAttribute("Key")].Data.Model.Name, "Chassis")
+			end
 		end
-    end
-    return getDefaultVehicleModel(Make, Type)
+		return getDefaultVehicleModel(Make, Type)
+	end)
 end)
 
 Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(function()
@@ -558,6 +561,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			Model = nil,
 			Height = Data.Height
 		},
+		VehiclePackets = {},
 		Data = {
 			Key = Data.Key or math.ceil(os.clock() + math.random(1, 200)),
 			Initialized = false,
@@ -610,6 +614,24 @@ Importer.Data.ImportPacket.LoadModel = function(self)
     local Model = game:GetObjects(getcustomasset and getcustomasset(self.Settings.Data) or "rbxassetid://" .. self.Settings.Data)[1]
 
     return Model
+end
+
+Importer.Data.ImportPacket.PacketValue = function(self, Index, Type)
+	self.VehiclePackets[Index] = {
+		Index = Index,
+		Type = Type
+	}
+end
+
+Importer.Data.ImportPacket.NewPacketValue = function(self, Data, Value)
+	if Data.Type == "number" then
+		Value = tonumber(Value)
+	elseif Data.Type == "boolean" then
+		Value = Value:lower() == "true" or false
+	elseif Data.Type == "table" then
+		Value = HttpService:JSONDecode(Value)
+	end
+	self.VehiclePackets[Data.Index].NewValue = Value
 end
 
 Importer.Data.ImportPacket.InitPacket = function(self)
@@ -809,6 +831,8 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 end
 
 Importer.Data.ImportPacket.Update = function(self)
+	local Packet = Importer.Data.Vehicle.GetLocalVehiclePacket()
+
 	local HasPlayer = self.Data.Chassis:FindFirstChild("Seat") and self.Data.Chassis.Seat:FindFirstChild("PlayerName") and self.Data.Chassis.Seat.PlayerName.Value == Players.LocalPlayer.Name
 
 	for i, v in next, self.Data.Chassis:GetDescendants() do
@@ -894,6 +918,27 @@ Importer.Data.ImportPacket.Update = function(self)
 			self.Data.Chassis[v.Name].Wheel.Size = v.Wheel.Size
 		end
 	end
+
+
+	if Packet and Packet.Model == self.Data.Chassis then
+		for i, v in next, self.VehiclePackets do
+			if not v.NewValue then
+				continue
+			end
+			local Indexs, NewIndex = string.split(v.Index, "."), Packet or {}
+			Indexs[1] = nil
+			for index, value in next, Indexs do
+				if index == #Indexs then
+					break
+				end
+				if not NewIndex[value] then
+					NewIndex[value] = {}
+				end
+				NewIndex = NewIndex[value]
+			end
+			NewIndex[Indexs[#Indexs]] = v.NewValue
+		end
+	end
 end
 
 Env.MCreateNewSave = function(Data)
@@ -915,13 +960,13 @@ local Initialize, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -953,13 +998,13 @@ local Packet, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -967,25 +1012,35 @@ local MMeta = {
 setmetatable(Packet.Functions, LMeta)
 setmetatable(Packet.Module.Functions, MMeta)
 
-Env.ReadTable = function(Data, PacketData, Original, Count)
+Env.ReadTable = function(Data, PacketData, Original, Dir, Count)
     for i, v in next, PacketData do
-        if type(v) == "table" then
+        local Type = typeof(v)
+        if Type == "table" then
             table.insert(Data, {
-                Index = Original .. " " .. tostring(i) .. " open",
+                Index = Original .. tostring(i) .. "open",
+                Parent = Original,
+                Dir = Dir .. "." .. tostring(i),
                 Name = string.rep("		", Count) .. tostring(i),
-                Value = "{"
+                Type = Type,
+                Value = "{...}"
             })
-            Packet.Functions.ReadTable(Data, v, tostring(i), Count + 1)
+            Packet.Functions.ReadTable(Data, v, Original .. tostring(i) .. "open", Dir .. "." .. tostring(i),Count + 1)
             table.insert(Data, {
-                Index = Original .. " " .. tostring(i) .. " close",
+                Index = Original .. tostring(i) .. "close",
+                Parent = Original .. tostring(i) .. "open",
+                Dir = Dir .. "." .. tostring(i),
                 Name = string.rep("		", Count) ..  "}",
+                Type = Type,
                 Value = tostring(i)
             })
         else
             table.insert(Data, {
                 Index = Original .. tostring(i),
+                Parent = Original,
+                Dir = Dir .. "." .. tostring(i),
                 Name = string.rep("		", Count) .. tostring(i),
-                Value = tostring(v) .. " (" .. type(v) .. ")"
+                Type = Type,
+                Value = tostring(v) .. " (" .. (Type == "Instance" and v.ClassName or Type) .. ")"
             })
         end
     end
@@ -994,7 +1049,7 @@ end
 Env.MGetPacketData = function()
     local Data, VehiclePacket = {}, Packet.Data.Vehicle.GetLocalVehiclePacket() or {}
 
-    Packet.Functions.ReadTable(Data, VehiclePacket, "", 0)
+    Packet.Functions.ReadTable(Data, VehiclePacket, "", "Packet", 0)
 
     return Data
 end
@@ -1019,13 +1074,13 @@ local ReadWrite, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -1048,6 +1103,7 @@ end
 Env.MReadVehicles = function()
 	local Vehicles = {}
 	for i,v in next, listfiles("./PayPal/Vehicles") do
+		v = string.gsub(v:gsub([[./PayPal]], "PayPal"), "/", [[\]])
 		table.insert(Vehicles, {
 			Name = string.gsub(string.split(v, [[\]])[3], ".rbxm", ""),
 			Data = v,
@@ -1164,7 +1220,7 @@ Env.dragify = function(Frame) -- stole from v3rm :kek:
     )
 end
 
-Env.MCreateUi = function(Name: string)
+Env.MCreateUi = function(Name)
     local Swift = Instance.new("ScreenGui")
     Swift.Name = "Swift"
     Swift.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -1255,7 +1311,7 @@ Env.MCreateUi = function(Name: string)
         Channel_Buttons = {},
     }
 
-    GuildLibrary.CreateGuild = function(Name: string, Icon: string, Banner: string)
+    GuildLibrary.CreateGuild = function(Name, Icon, Banner)
         local Guild = {}
 
         local ServerName = Instance.new("Frame")
@@ -1366,7 +1422,7 @@ Env.MCreateUi = function(Name: string)
 
         local CategoryLibrary = {}
 
-        CategoryLibrary.CreateCategory = function(Name: string)
+        CategoryLibrary.CreateCategory = function(Name)
             local Category = Instance.new("Frame")
             Category.Name = "Category"
             Category.Parent = TabSelection
@@ -1474,7 +1530,7 @@ Env.MCreateUi = function(Name: string)
 
             local ChannelLibrary = {}
 
-            ChannelLibrary.CreateChannel = function(Name: string)
+            ChannelLibrary.CreateChannel = function(Name)
                 local Sections = {}
                 local Inputs = {}
 
@@ -1668,7 +1724,7 @@ Env.MCreateUi = function(Name: string)
 
                 local SectionLibrary = {}
 
-                SectionLibrary.CreateSection = function(Name: string)
+                SectionLibrary.CreateSection = function(Name)
                     local Section = Instance.new("Frame")
                     Section.Name = "Section"
                     Section.Size = UDim2.new(0, 398, 0, 22)
@@ -1711,7 +1767,7 @@ Env.MCreateUi = function(Name: string)
 
                     local InputLibrary = {}
 
-                    InputLibrary.CreateButton = function(Callback, Data: table)
+                    InputLibrary.CreateButton = function(Callback, Data)
                         local Button = Instance.new("TextButton")
                         Button.Name = Data.Name
                         Button.Size = UDim2.new(0, 389, 0, 26)
@@ -1776,7 +1832,7 @@ Env.MCreateUi = function(Name: string)
 
                         local ButtonLibrary = {}
 
-                        ButtonLibrary.Update = function(UpdateCallback, UpdateData: table)
+                        ButtonLibrary.Update = function(UpdateCallback, UpdateData)
                             Data.Name = UpdateData.Name or Data.Name
                             Callback = UpdateCallback or Callback
                             Button.Name = Data.Name
@@ -1796,7 +1852,7 @@ Env.MCreateUi = function(Name: string)
                         return ButtonLibrary
                     end
 
-                    InputLibrary.CreateLabel = function(Data: table)
+                    InputLibrary.CreateLabel = function(Data)
                         local Button = Instance.new("TextButton")
                         Button.Name = Data.Name
                         Button.Size = UDim2.new(0, 389, 0, 26)
@@ -1855,7 +1911,7 @@ Env.MCreateUi = function(Name: string)
 
                         local LabelLibrary = {}
 
-                        LabelLibrary.Update = function(UpdateData: table)
+                        LabelLibrary.Update = function(UpdateData)
                             Data.Name = UpdateData.Name or Data.Name
                             Data.Text = UpdateData.Text or Data.Text
                             Button.Name = UpdateData.Name or Data.Name
@@ -1874,7 +1930,144 @@ Env.MCreateUi = function(Name: string)
                         return LabelLibrary
                     end
 
-                    InputLibrary.CreateToggle = function(Callback, Data: table)
+                    InputLibrary.CreateAdvancedDisplay = function(Callback, Data)
+                        local Button = Instance.new("TextButton")
+                        Button.Name = Data.Name
+                        Button.Size = UDim2.new(0, 389, 0, 26)
+                        Button.Position = UDim2.new(0.0104167, 0, 0.297619, 0)
+                        Button.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+                        Button.AutoButtonColor = false
+                        Button.FontSize = Enum.FontSize.Size11
+                        Button.TextSize = 11
+                        Button.RichText = true
+                        Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        Button.Text = ""
+                        Button.Font = Enum.Font.Gotham
+                        Button.Parent = Section
+                        Button.Visible = not (Data.Parent and Data.Parent.Visible == false)
+                        table.insert(Data.Parent and Data.Parent.Children or Inputs, Button)
+
+                        local UICorner2 = Instance.new("UICorner")
+                        UICorner2.CornerRadius = UDim.new(0, 5)
+                        UICorner2.Parent = Button
+
+                        local DisplayName = Instance.new("TextLabel")
+                        DisplayName.Name = "DisplayName"
+                        DisplayName.Size = UDim2.new(0, 345, 0, 26)
+                        DisplayName.BackgroundTransparency = 1
+                        DisplayName.Position = UDim2.new(0.0208333, 0, 0, 0)
+                        DisplayName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        DisplayName.FontSize = Enum.FontSize.Size11
+                        DisplayName.TextSize = 11
+                        DisplayName.RichText = true
+                        DisplayName.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        DisplayName.Text = Data.Name .. " : " .. Data.Text
+                        DisplayName.Font = Enum.Font.Gotham
+                        DisplayName.TextXAlignment = Enum.TextXAlignment.Left
+                        DisplayName.Parent = Button
+                        DisplayName.ClipsDescendants = true
+
+                        local DisplayIcon = Instance.new("ImageButton")
+                        DisplayIcon.Name = "DisplayIcon"
+                        DisplayIcon.Size = UDim2.new(0, 20, 0, 20)
+                        DisplayIcon.BorderColor3 = Color3.fromRGB(27, 42, 53)
+                        DisplayIcon.BackgroundTransparency = 1
+                        DisplayIcon.Position = UDim2.new(0.94, 0, 0.125, 0)
+                        DisplayIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                        DisplayIcon.ImageColor3 = Color3.fromRGB(74, 74, 74)
+                        DisplayIcon.ImageRectOffset = Vector2.new(300, 300)
+                        DisplayIcon.ImageRectSize = Vector2.new(100, 100)
+                        DisplayIcon.Image = "rbxassetid://6764432293"
+                        DisplayIcon.Visible = false
+                        DisplayIcon.Parent = Button
+
+                        Button.MouseEnter:Connect(function(x, y)
+                            TweenService:Create(DisplayIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                        end)
+
+                        Button.MouseLeave:Connect(function(x, y)
+                            TweenService:Create(DisplayIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
+                        end)
+
+                        Button.MouseButton1Down:Connect(function(x, y)
+                            TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
+                            task.wait(.126)
+                            TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(29, 29, 29)}):Play()
+                            Callback()
+                        end)
+
+                        if Data.Parent then
+                            Data.Parent.ChildAdded()
+                        else
+                            DisplayIcon.Visible = false
+                        end
+
+                        local DisplayLibrary = {
+                            Visible = false,
+                            Children = {}
+                        }
+
+                        DisplayLibrary.ChildAdded = function(Update)
+                            if not Update then
+                                DisplayIcon.Visible = true
+                            end
+                            local NewName = Data.Name
+                            for i, v in next, DisplayLibrary.Children do
+                                NewName = NewName .. v.Name
+                            end
+                            Button.Name = NewName
+                            if Data.Parent then
+                                Data.Parent.ChildAdded()
+                            end
+                        end
+
+                        DisplayIcon.MouseButton1Down:Connect(function(x, y)
+                            DisplayLibrary.Visible = not DisplayLibrary.Visible
+                            DisplayIcon.ImageRectOffset = DisplayLibrary.Visible and Vector2.new(700, 900) or Vector2.new(300, 300)
+                            Data.AltCallback(DisplayLibrary.Visible)
+                            for i, v in next, DisplayLibrary.Children do
+                                v.Visible = DisplayLibrary.Visible
+                            end
+                        end)
+
+                        Button:GetPropertyChangedSignal("Visible"):Connect(function()
+                            if Button.Visible then
+                                for i, v in next, DisplayLibrary.Children do
+                                    v.Visible = DisplayLibrary.Visible
+                                end
+                            else
+                                for i, v in next, DisplayLibrary.Children do
+                                    v.Visible = false
+                                end
+                            end
+                        end)
+
+                        DisplayLibrary.Update = function(UpdateCallback, UpdateData)
+                            Data.Name = UpdateData.Name or Data.Name
+                            Data.Text = UpdateData.Text or Data.Text
+                            Callback = UpdateCallback or Callback
+                            Button.Name = UpdateData.Name or Button.Name
+                            DisplayName.Text = Data.Name .. " : " .. Data.Text
+
+                            DisplayLibrary.ChildAdded(true)
+                        end
+
+                        DisplayLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Button))
+                            Button:Destroy()
+                            if Data.Parent then
+                                Data.Parent.ChildAdded()
+                            end
+                        end
+
+                        DisplayLibrary.GetData = function(Key)
+                            return Data[Key]
+                        end
+
+                        return DisplayLibrary
+                    end
+
+                    InputLibrary.CreateToggle = function(Callback, Data)
                         local Toggle = Instance.new("TextButton")
                         Toggle.Name = Data.Name
                         Toggle.Size = UDim2.new(0, 389, 0, 26)
@@ -1889,11 +2082,11 @@ Env.MCreateUi = function(Name: string)
                         Toggle.Font = Enum.Font.Gotham
                         Toggle.Parent = Section
                         table.insert(Inputs, Toggle)
-                        
+
                         local UICorner3 = Instance.new("UICorner")
                         UICorner3.CornerRadius = UDim.new(0, 5)
                         UICorner3.Parent = Toggle
-                        
+
                         local ToggleName = Instance.new("TextLabel")
                         ToggleName.Name = "ToggleName"
                         ToggleName.Size = UDim2.new(0, 345, 0, 26)
@@ -1955,7 +2148,7 @@ Env.MCreateUi = function(Name: string)
                         end)
                     end
 
-                    InputLibrary.CreateDropdown = function(Callback, Data: table)
+                    InputLibrary.CreateDropdown = function(Callback, Data)
                         local Dropdown = Instance.new("TextButton")
                         Dropdown.Name = Data.Name
                         Dropdown.Size = UDim2.new(0, 389, 0, 26)
@@ -2218,7 +2411,7 @@ Env.MCreateUi = function(Name: string)
                         return DropdownLibrary
                     end
 
-                    InputLibrary.CreateTextBox = function(Callback, Data: table)
+                    InputLibrary.CreateTextBox = function(Callback, Data)
                         local Textbox = Instance.new("Frame")
                         Textbox.Name = Data.Name
                         Textbox.Size = UDim2.new(0, 389, 0, 26)
@@ -2334,7 +2527,7 @@ Env.MCreateUi = function(Name: string)
                         return TextBoxLibrary
                     end
 
-                    InputLibrary.CreateSlider = function(Callback, Data: table)
+                    InputLibrary.CreateSlider = function(Callback, Data)
                         local Slider = Instance.new("TextButton")
                         Slider.Name = Data.Name
                         Slider.Size = UDim2.new(0, 389, 0, 26)
@@ -2474,7 +2667,7 @@ Env.MCreateUi = function(Name: string)
                         end)
                     end
 
-                    InputLibrary.CreateKeyBind = function(Callback, Data: table)
+                    InputLibrary.CreateKeyBind = function(Callback, Data)
                         local Textbox = Instance.new("Frame")
                         Textbox.Name = Data.Name
                         Textbox.Size = UDim2.new(0, 389, 0, 26)
@@ -2595,7 +2788,7 @@ Env.MCreateUi = function(Name: string)
                 return SectionLibrary
             end
 
-            ChannelLibrary.CreateNotif = function(Name: string, ImageRectOffset: Vector2, TextDescription: string, Options: string)
+            ChannelLibrary.CreateNotif = function(Name, ImageRectOffset, TextDescription, Options)
                 local Notif = Instance.new("Frame")
                 Notif.Name = "Notif"
                 Notif.Size = UDim2.new(1, 0, 1, 0)
@@ -2772,6 +2965,7 @@ local CreateUi, Env = {
 	Data = {
 		GlobalUi = {
 			ConfigList = {},
+			Packets = {},
 			Manage = {},
 			Settings = {}
 		}
@@ -2780,13 +2974,13 @@ local CreateUi, Env = {
 }, {}
 
 local LMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env[index]
 	end
 }
 
 local MMeta = {
-	__index = function(self: table, index: string)
+	__index = function(self, index)
 		return Env["M" .. index]
 	end
 }
@@ -2798,6 +2992,12 @@ Env.ResetSelector = function()
 	CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = ""})
 	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", AltText = ""})
 	CreateUi.Data.GlobalUi.Settings.Height.Update(function() end, {Text = "0"})
+	CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
+	CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function() end, {Text = "Packet", AltText = ""})
+	Env.GetConfig = function()
+		return
+	end
+	CreateUi.Data.GlobalUi.Packets.NewValueTextBox.Update(function() end, {Text = ""})
 	CreateUi.Data.GlobalUi.Manage.Init.Update(function() end,{Name = "Initialize"})
 end
 
@@ -2813,6 +3013,43 @@ Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	local Section = Channel.CreateSection("Manage Config")
 
 	CreateUi.Functions.CreateInitConfigButton(Section)
+
+	return Section
+end
+
+Env.CreateNewPacketValue = function(Section)
+	local TextBox = Section.CreateTextBox(function(Text) end, {Name = "New Packet Value", Text = ""})
+
+	CreateUi.Data.GlobalUi.Packets.NewValueTextBox = TextBox
+
+	return TextBox
+end
+
+Env.CreateSelectedPacketType = function(Section) -- Config Packet Type Label
+	local Lable = Section.CreateLabel({
+		Name = "Selected Packet Type",
+		Text = ""
+	})
+
+	CreateUi.Data.GlobalUi.Packets.TypeLabel = Lable
+
+	return Lable
+end
+
+Env.CreatePacketListDropDown = function(Section) -- Config Packet Dropdown
+	local Dropdown = Section.CreateDropdown(function() end, {Name = "Packet", AltText = "", Options = {}})
+
+	CreateUi.Data.GlobalUi.Packets.Dropdown = Dropdown
+
+	return Dropdown
+end
+
+Env.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
+	local Section = Channel.CreateSection("Config Packets")
+
+	CreateUi.Functions.CreatePacketListDropDown(Section)
+	CreateUi.Functions.CreateSelectedPacketType(Section)
+	CreateUi.Functions.CreateNewPacketValue(Section)
 
 	return Section
 end
@@ -2839,10 +3076,14 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 			Name = Vehicle.Name .. (PlayerName ~= "" and " : ".. PlayerName or ""),
 			Data = Vehicle,
 			Enter = function()
-				Vehicle.BoundingBox.Transparency = 0
+				if BoundingBox then
+					Vehicle.BoundingBox.Transparency = 0
+				end
 			end,
 			Leave = function()
-				Vehicle.BoundingBox.Transparency = 1
+				if BoundingBox then
+					Vehicle.BoundingBox.Transparency = 1
+				end
 			end
 		})
 	end
@@ -2899,6 +3140,28 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
+		local Options = {}
+		for i, v in next, Packet.VehiclePackets do
+			local Name = string.split(v.Index, ".")
+			Name = Name[#Name]
+			table.insert(Options, {
+				Name = Name,
+				Data = v,
+				Enter = function() end,
+				Leave = function() end
+			})
+		end
+		CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
+		CreateUi.Data.GlobalUi.Packets.Dropdown.AddOptions(Options)
+		CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function(Data)
+			CreateUi.Data.GlobalUi.Packets.TypeLabel.Update({Text = Data.Type})
+			CreateUi.Data.GlobalUi.Packets.NewValueTextBox.Update(function(Text)
+				Packet:NewPacketValue(Data, Text)
+			end, {})
+		end, {})
+		Env.GetConfig = function()
+			return Packet
+		end
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
 			local Output, Offset =  Packet:InitPacket()
 			local Notif = Category.CreateNotif("Initialization", Offset, Output, {
@@ -3000,6 +3263,7 @@ Env.CreateImportChannel = function(Category) -- Importer Channel
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
 	CreateUi.Functions.CreateConfigListSection(Channel)
 	CreateUi.Functions.CreateConfigSettingsSection(Channel)
+	CreateUi.Functions.CreateConfigPacketsSection(Channel)
 	CreateUi.Functions.CreateManageConfigSection(Channel)
 
 	return Channel
@@ -3021,35 +3285,81 @@ Env.FindInPacket = function(Data, Index)
 	end
 end
 
-Env.UpdatePacket = function(Section)
-	local Labels = {}
+Env.GetConfig = function()
+	return
+end
+
+Env.ModiyPacket = function(Category, v)
+	local Config = CreateUi.Functions.GetConfig()
+	local Notif = Category.CreateNotif(not Config and "No config selected" or "Model Update", Vector2.new(200, 300), not Config and "Please select a config" or v.Type == "Instance" and "Modifying this type is not supported" or "Would you like to modify:\n\n" .. v.Dir, {
+		{
+			Text = "Ok",
+			Close = true,
+			Callback = Config and function()
+				if v.Type == "Instance" then
+					return
+				end
+				Config:PacketValue(v.Dir, v.Type)
+				local Options = {}
+				for index, value in next, Config.VehiclePackets do
+					local Name = string.split(value.Index, ".")
+					Name = Name[#Name]
+					table.insert(Options, {
+						Name = Name,
+						Data = value,
+						Enter = function() end,
+						Leave = function() end
+					})
+				end
+				CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
+				CreateUi.Data.GlobalUi.Packets.Dropdown.AddOptions(Options)
+			end or function() end
+		} or nil,
+		v.Type ~= "Instance" and {
+			Text = "Cancel",
+			Close = true,
+			Callback = function() end
+		} or nil
+	})
+end
+
+Env.UpdatePacket = function(Category, Section)
+	local Displays = {}
 	RunService.Heartbeat:Connect(function()
 		local Data = Packet.Functions.GetPacketData()
 		for i, v in next, Data do
-			if Labels[v.Index] and Labels[v.Index].GetData("Text") ~= v.Value  then
-				Labels[v.Index].Update({Text = v.Value})
+			local Text = Displays[v.Index] and Displays[v.Index].GetData("Text")
+			if Displays[v.Index] and Text ~= v.Value and Text ~= "{" then
+				Displays[v.Index].Update(nil, {Text = v.Value})
 			end
-			if not Labels[v.Index] then
-				Labels[v.Index] = Section.CreateLabel({
+			if not Displays[v.Index] then
+				Displays[v.Index] = Section.CreateAdvancedDisplay(function()
+					CreateUi.Functions.ModiyPacket(Category, v)
+				end,
+				{
 					Name = v.Name,
 					Index = v.Index,
-					Text = v.Value
+					Text = v.Value,
+					Parent = Displays[v.Parent],
+					AltCallback = function(Open)
+						Displays[v.Index].Update(nil, {Text = Open and "{" or "{...}"})
+					end
 				})
 			end
 		end
-		for i,v in next, Labels do
+		for i,v in next, Displays do
 			if not CreateUi.Functions.FindInPacket(Data, v.GetData("Index")) then
 				v.Destroy()
-				Labels[i] = nil
+				Displays[i] = nil
 			end
 		end
 	end)
 end
 
-Env.CreatePacketSection = function(Channel)
+Env.CreatePacketSection = function(Category, Channel)
 	local Section = Channel.CreateSection("Packet")
 
-	CreateUi.Functions.UpdatePacket(Section)
+	CreateUi.Functions.UpdatePacket(Category, Section)
 
 	return Section
 end
@@ -3057,7 +3367,7 @@ end
 Env.CreatePacketChannel = function(Category) -- Packet Channel
 	local Channel = Category.CreateChannel("Packet")
 
-	CreateUi.Functions.CreatePacketSection(Channel)
+	CreateUi.Functions.CreatePacketSection(Category, Channel)
 
 	return Channel
 end
