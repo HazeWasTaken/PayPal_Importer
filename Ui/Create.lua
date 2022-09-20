@@ -432,7 +432,7 @@ Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
 end
 
 Env.CreateImporterGuild = function(Ui) -- Importer Guild
-	local Guild = Ui.CreateGuild("Importer", getcustomasset and getcustomasset("jailbreak.png") or "", getcustomasset and getcustomasset("badimo.webm") or "")
+	local Guild = Ui.CreateGuild("Importer", getcustomasset and isfile("jailbreak.png") and getcustomasset("jailbreak.png") or "", getcustomasset and isfile("badimo.webm") and getcustomasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)
 	CreateUi.Functions.CreateVehcileCategory(Guild)
