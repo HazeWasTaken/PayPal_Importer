@@ -68,6 +68,7 @@ Env.MWriteConfig = function(Config)
 		Name = Config.Settings.Name,
 		Data = Config.Settings.Data,
 		Height = Config.Settings.Height,
+		SimulateWheels = Config.Settings.SimulateWheels,
 		Key = Config.Data.Key
 	}))
 end
