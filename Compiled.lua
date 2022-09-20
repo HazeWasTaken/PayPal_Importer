@@ -559,7 +559,8 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			Name = Data.Name,
 			Data = Data.Data,
 			Model = nil,
-			Height = Data.Height
+			Height = Data.Height,
+			SimulateWheels = Data.SimulateWheels
 		},
 		VehiclePackets = {},
 		Data = {
@@ -608,6 +609,10 @@ end
 
 Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 	self.Settings.Height = Height
+end
+
+Importer.Data.ImportPacket.UpdateWheelSimulation = function(self, SimulateWheels)
+	self.Settings.SimulateWheels = SimulateWheels
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
@@ -833,7 +838,7 @@ end
 Importer.Data.ImportPacket.Update = function(self)
 	local Packet = Importer.Data.Vehicle.GetLocalVehiclePacket()
 
-	local HasPlayer = self.Data.Chassis:FindFirstChild("Seat") and self.Data.Chassis.Seat:FindFirstChild("PlayerName") and self.Data.Chassis.Seat.PlayerName.Value == Players.LocalPlayer.Name
+	local HasPlayer = Packet and Packet.Model == self.Data.Chassis
 
 	for i, v in next, self.Data.Chassis:GetDescendants() do
 		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not Importer.Functions.WheelDescendant(self.Data.RealWheels, v) then
@@ -843,18 +848,18 @@ Importer.Data.ImportPacket.Update = function(self)
 	for i,v in next, self.Data.Wheels do
 		for index, value in next, v.MeshPart:GetChildren() do
 			if value:IsA("Decal") then
-				value.Transparency = HasPlayer and 0 or 1
+				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
 		end
-		v.MeshPart.Transparency = HasPlayer and 1 or 0
+		v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
 	end
 	for i,v in next, self.Data.RealWheels do
 		for index, value in next, i:GetChildren() do
 			if value:IsA("Decal") then
-				value.Transparency = HasPlayer and 0 or 1
+				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
 		end
-		i.Transparency = HasPlayer and 0 or 1
+		i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 	end
 	for i, v in next, self.Data.Model:GetDescendants() do
 		if v:IsA("Weld") then
@@ -866,8 +871,8 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
-	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame  + Vector3.new(0, self.Settings.Height - (HasPlayer and self.Data.LargestWheelSize or 0), 0)
-	if self.Data.Model:FindFirstChild("Spoiler") then
+	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame + Vector3.new(0, self.Settings.Height - (HasPlayer and not self.Settings.SimulateWheels and self.Data.LargestWheelSize or 0), 0)
+	if self.Data.Model:FindFirstChild("Spoiler") and self.Data.Chassis:FindFirstChild("Spoiler") then
 		self.Data.Model.Spoiler.CFrame = CFrame.lookAt(self.Data.Model.Spoiler.Position, self.Data.Model.Spoiler.Position + self.Data.Chassis.Spoiler.CFrame.LookVector)
 	end
 
@@ -881,7 +886,7 @@ Importer.Data.ImportPacket.Update = function(self)
 			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
 			local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 			local WorldCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
-			Thrust.Position = HasPlayer and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
+			Thrust.Position = HasPlayer and not self.Settings.SimulateWheels and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
 		end
 	end
 
@@ -2137,15 +2142,31 @@ Env.MCreateUi = function(Name)
                             Callback(Data.State)
                         end)
 
+                        local Hovering
+
                         Toggle.MouseEnter:Connect(function(x, y)
+                            Hovering = true
                             TweenService:Create(Checked, TweenInfo.new(.25), {ImageColor3 = Data.State and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(0, 144, 211)}):Play()
                             TweenService:Create(UIStroke1, TweenInfo.new(.25), {Color = Color3.fromRGB(0, 85, 127)}):Play()
                         end)
 
                         Toggle.MouseLeave:Connect(function(x, y)
+                            Hovering = false
                             TweenService:Create(Checked, TweenInfo.new(.25), {ImageColor3 = Data.State and Color3.fromRGB(0, 144, 211) or Color3.fromRGB(0, 0, 0)}):Play()
                             TweenService:Create(UIStroke1, TweenInfo.new(.25), {Color = Color3.fromRGB(0, 0, 0)}):Play()
                         end)
+
+                        local ToggleLibrary = {}
+
+                        ToggleLibrary.Update = function(UpdateCallback, UpdateData)
+                            ToggleName.Name = UpdateData.Name or Data.Name
+                            Data.State = UpdateData.State
+                            TweenService:Create(Toggled, TweenInfo.new(.125), {BackgroundColor3 = Data.State and Color3.fromRGB(0, 144, 211) or Color3.fromRGB(0, 0, 0)}):Play()
+                            TweenService:Create(Checked, TweenInfo.new(.25), {ImageColor3 = Hovering and (Data.State and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(0, 144, 211)) or Data.State and Color3.fromRGB(0, 144, 211) or Color3.fromRGB(0, 0, 0)}):Play()
+                            Callback = UpdateCallback or Callback
+                        end
+
+                        return ToggleLibrary
                     end
 
                     InputLibrary.CreateDropdown = function(Callback, Data)
@@ -3054,6 +3075,14 @@ Env.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
 	return Section
 end
 
+Env.CreateWheelSimulationToggle = function(Section)
+	local Toggle = Section.CreateToggle(function() end, {Name = "Simulate Wheels ", State = false})
+
+	CreateUi.Data.GlobalUi.Settings.SimulateWheels = Toggle
+
+	return Toggle
+end
+
 Env.CreateModelHeightTextBox = function(Section)
 	local TextBox = Section.CreateTextBox(function() end, {Name = "Height ", Text = "0",NumOnly = true})
 
@@ -3112,6 +3141,7 @@ Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 
 	CreateUi.Functions.CreateSelectModelDropdown(Section)
 	CreateUi.Functions.CreateModelHeightTextBox(Section)
+	CreateUi.Functions.CreateWheelSimulationToggle(Section)
 
 	return Section
 end
@@ -3140,6 +3170,9 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
+		CreateUi.Data.GlobalUi.Settings.SimulateWheels.Update(function(Bool)
+			Packet:UpdateWheelSimulation(Bool)
+		end, {State = Packet.Settings.SimulateWheels})
 		local Options = {}
 		for i, v in next, Packet.VehiclePackets do
 			local Name = string.split(v.Index, ".")
@@ -3206,7 +3239,8 @@ Env.CreateModelLoad = function(Category, Section) -- Model Load
 					local Packet = Importer.Functions.CreateNewSave({
 						Name = getcustomasset and string.gsub(string.split(Data, [[\]])[3], ".rbxm", "") or MarketplaceService:GetProductInfo(Data).Name,
 						Data = Data,
-						Height = 0
+						Height = 0,
+						SimulateWheels = false
 					})
 					CreateUi.Functions.CreateConfigListElement(Category, Packet)
 				end
@@ -3405,6 +3439,13 @@ if not game:IsLoaded() then
 end
 
 getgenv().getcustomasset = getcustomasset or getsynasset
+
+if not isfile("jailbreak.png") then
+    writefile("jailbreak.png", game:HttpGet())
+end
+if not isfile("badimo.webm") then
+    writefile("badimo.webm", game:HttpGet())
+end
 
 local Loaded = {}
 

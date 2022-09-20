@@ -105,6 +105,14 @@ Env.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
 	return Section
 end
 
+Env.CreateWheelSimulationToggle = function(Section)
+	local Toggle = Section.CreateToggle(function() end, {Name = "Simulate Wheels ", State = false})
+
+	CreateUi.Data.GlobalUi.Settings.SimulateWheels = Toggle
+
+	return Toggle
+end
+
 Env.CreateModelHeightTextBox = function(Section)
 	local TextBox = Section.CreateTextBox(function() end, {Name = "Height ", Text = "0",NumOnly = true})
 
@@ -163,6 +171,7 @@ Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 
 	CreateUi.Functions.CreateSelectModelDropdown(Section)
 	CreateUi.Functions.CreateModelHeightTextBox(Section)
+	CreateUi.Functions.CreateWheelSimulationToggle(Section)
 
 	return Section
 end
@@ -191,6 +200,9 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
+		CreateUi.Data.GlobalUi.Settings.SimulateWheels.Update(function(Bool)
+			Packet:UpdateWheelSimulation(Bool)
+		end, {State = Packet.Settings.SimulateWheels})
 		local Options = {}
 		for i, v in next, Packet.VehiclePackets do
 			local Name = string.split(v.Index, ".")
@@ -257,7 +269,8 @@ Env.CreateModelLoad = function(Category, Section) -- Model Load
 					local Packet = Importer.Functions.CreateNewSave({
 						Name = getcustomasset and string.gsub(string.split(Data, [[\]])[3], ".rbxm", "") or MarketplaceService:GetProductInfo(Data).Name,
 						Data = Data,
-						Height = 0
+						Height = 0,
+						SimulateWheels = false
 					})
 					CreateUi.Functions.CreateConfigListElement(Category, Packet)
 				end

@@ -1001,15 +1001,31 @@ Env.MCreateUi = function(Name)
                             Callback(Data.State)
                         end)
 
+                        local Hovering
+
                         Toggle.MouseEnter:Connect(function(x, y)
+                            Hovering = true
                             TweenService:Create(Checked, TweenInfo.new(.25), {ImageColor3 = Data.State and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(0, 144, 211)}):Play()
                             TweenService:Create(UIStroke1, TweenInfo.new(.25), {Color = Color3.fromRGB(0, 85, 127)}):Play()
                         end)
 
                         Toggle.MouseLeave:Connect(function(x, y)
+                            Hovering = false
                             TweenService:Create(Checked, TweenInfo.new(.25), {ImageColor3 = Data.State and Color3.fromRGB(0, 144, 211) or Color3.fromRGB(0, 0, 0)}):Play()
                             TweenService:Create(UIStroke1, TweenInfo.new(.25), {Color = Color3.fromRGB(0, 0, 0)}):Play()
                         end)
+
+                        local ToggleLibrary = {}
+
+                        ToggleLibrary.Update = function(UpdateCallback, UpdateData)
+                            ToggleName.Name = UpdateData.Name or Data.Name
+                            Data.State = UpdateData.State
+                            TweenService:Create(Toggled, TweenInfo.new(.125), {BackgroundColor3 = Data.State and Color3.fromRGB(0, 144, 211) or Color3.fromRGB(0, 0, 0)}):Play()
+                            TweenService:Create(Checked, TweenInfo.new(.25), {ImageColor3 = Hovering and (Data.State and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(0, 144, 211)) or Data.State and Color3.fromRGB(0, 144, 211) or Color3.fromRGB(0, 0, 0)}):Play()
+                            Callback = UpdateCallback or Callback
+                        end
+
+                        return ToggleLibrary
                     end
 
                     InputLibrary.CreateDropdown = function(Callback, Data)

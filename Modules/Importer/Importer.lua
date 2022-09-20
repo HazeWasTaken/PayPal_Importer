@@ -171,7 +171,8 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			Name = Data.Name,
 			Data = Data.Data,
 			Model = nil,
-			Height = Data.Height
+			Height = Data.Height,
+			SimulateWheels = Data.SimulateWheels
 		},
 		VehiclePackets = {},
 		Data = {
@@ -220,6 +221,10 @@ end
 
 Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 	self.Settings.Height = Height
+end
+
+Importer.Data.ImportPacket.UpdateWheelSimulation = function(self, SimulateWheels)
+	self.Settings.SimulateWheels = SimulateWheels
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
@@ -445,7 +450,7 @@ end
 Importer.Data.ImportPacket.Update = function(self)
 	local Packet = Importer.Data.Vehicle.GetLocalVehiclePacket()
 
-	local HasPlayer = self.Data.Chassis:FindFirstChild("Seat") and self.Data.Chassis.Seat:FindFirstChild("PlayerName") and self.Data.Chassis.Seat.PlayerName.Value == Players.LocalPlayer.Name
+	local HasPlayer = Packet and Packet.Model == self.Data.Chassis
 
 	for i, v in next, self.Data.Chassis:GetDescendants() do
 		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not Importer.Functions.WheelDescendant(self.Data.RealWheels, v) then
@@ -455,18 +460,18 @@ Importer.Data.ImportPacket.Update = function(self)
 	for i,v in next, self.Data.Wheels do
 		for index, value in next, v.MeshPart:GetChildren() do
 			if value:IsA("Decal") then
-				value.Transparency = HasPlayer and 0 or 1
+				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
 		end
-		v.MeshPart.Transparency = HasPlayer and 1 or 0
+		v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
 	end
 	for i,v in next, self.Data.RealWheels do
 		for index, value in next, i:GetChildren() do
 			if value:IsA("Decal") then
-				value.Transparency = HasPlayer and 0 or 1
+				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
 		end
-		i.Transparency = HasPlayer and 0 or 1
+		i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 	end
 	for i, v in next, self.Data.Model:GetDescendants() do
 		if v:IsA("Weld") then
@@ -478,8 +483,8 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
-	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame  + Vector3.new(0, self.Settings.Height - (HasPlayer and self.Data.LargestWheelSize or 0), 0)
-	if self.Data.Model:FindFirstChild("Spoiler") then
+	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame + Vector3.new(0, self.Settings.Height - (HasPlayer and not self.Settings.SimulateWheels and self.Data.LargestWheelSize or 0), 0)
+	if self.Data.Model:FindFirstChild("Spoiler") and self.Data.Chassis:FindFirstChild("Spoiler") then
 		self.Data.Model.Spoiler.CFrame = CFrame.lookAt(self.Data.Model.Spoiler.Position, self.Data.Model.Spoiler.Position + self.Data.Chassis.Spoiler.CFrame.LookVector)
 	end
 
@@ -493,7 +498,7 @@ Importer.Data.ImportPacket.Update = function(self)
 			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
 			local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 			local WorldCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
-			Thrust.Position = HasPlayer and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
+			Thrust.Position = HasPlayer and not self.Settings.SimulateWheels and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
 		end
 	end
 

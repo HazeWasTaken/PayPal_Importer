@@ -4,6 +4,13 @@ end
 
 getgenv().getcustomasset = getcustomasset or getsynasset
 
+if not isfile("jailbreak.png") then
+    writefile("jailbreak.png", game:HttpGet())
+end
+if not isfile("badimo.webm") then
+    writefile("badimo.webm", game:HttpGet())
+end
+
 local Loaded = {}
 
 import = function(dir)
