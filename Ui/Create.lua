@@ -390,6 +390,9 @@ end
 Env.UpdatePacket = function(Category, Section)
 	local Displays = {}
 	RunService.Heartbeat:Connect(function()
+		if not Section.Content.Visible then
+			return
+		end
 		local Data = Packet.Functions.GetPacketData()
 		for i, v in next, Data do
 			local Text = Displays[v.Index] and Displays[v.Index].GetData("Text")

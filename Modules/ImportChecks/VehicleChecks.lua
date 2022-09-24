@@ -23,7 +23,10 @@ local VehicleChecks, Env = {
 			},
 			Model = {
 				SteeringWheel = {},
-				Nitrous = {},
+				Nitrous = {
+					Smoke = {},
+					Fire = {}
+				},
 			},
 			Camera = {},
 			InsideCamera = {},

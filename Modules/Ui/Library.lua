@@ -629,7 +629,9 @@ Env.MCreateUi = function(Name)
                         Section.Size = UDim2.new(0, 398, 0, UIListLayout1.AbsoluteContentSize.Y + 4)
                     end)
 
-                    local InputLibrary = {}
+                    local InputLibrary = {
+                        Content = Content
+                    }
 
                     InputLibrary.CreateButton = function(Callback, Data)
                         local Button = Instance.new("TextButton")

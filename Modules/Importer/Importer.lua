@@ -187,6 +187,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			RelativeWheels = {},
 			RelativeThrust = {},
 			Connections = {},
+			DescendantData = {},
 			SeatCF = nil,
 			RelativeSteeringWheel = nil,
 			LargestWheelSize = 0
@@ -229,7 +230,7 @@ end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
     local Model = game:GetObjects(getcustomasset and getcustomasset(self.Settings.Data) or "rbxassetid://" .. self.Settings.Data)[1]
-
+	Model.PrimaryPart = Model.Engine
     return Model
 end
 
@@ -452,13 +453,33 @@ Importer.Data.ImportPacket.Update = function(self)
 
 	local HasPlayer = Packet and Packet.Model == self.Data.Chassis
 
-	for i, v in next, self.Data.Chassis:GetDescendants() do
+	if not self.Data.DescendantData[self.Data.Chassis] then
+		self.Data.DescendantData[self.Data.Chassis] = self.Data.Chassis:GetDescendants()
+		self.Data.Chassis.DescendantAdded:Connect(function(descendant)
+			table.insert(self.Data.DescendantData[self.Data.Chassis], descendant)
+		end)
+	end
+
+	if not self.Data.DescendantData[self.Data.Model] then
+		self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
+		self.Data.Model.DescendantAdded:Connect(function(descendant)
+			table.insert(self.Data.DescendantData[self.Data.Model], descendant)
+		end)
+	end
+
+	for i, v in next, self.Data.DescendantData[self.Data.Chassis] do
 		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not Importer.Functions.WheelDescendant(self.Data.RealWheels, v) then
 			v.Transparency = 1
 		end
 	end
 	for i,v in next, self.Data.Wheels do
-		for index, value in next, v.MeshPart:GetChildren() do
+		if not self.Data.DescendantData[v.MeshPart] then
+			self.Data.DescendantData[v.MeshPart] = v.MeshPart:GetChildren()
+			v.MeshPart.ChildAdded:Connect(function(child)
+				table.insert(self.Data.DescendantData[v.MeshPart], child)
+			end)
+		end
+		for index, value in next, self.Data.DescendantData[v.MeshPart] do
 			if value:IsA("Decal") then
 				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
@@ -466,14 +487,20 @@ Importer.Data.ImportPacket.Update = function(self)
 		v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
 	end
 	for i,v in next, self.Data.RealWheels do
-		for index, value in next, i:GetChildren() do
+		if not self.Data.DescendantData[i] then
+			self.Data.DescendantData[i] = i:GetChildren()
+			i.ChildAdded:Connect(function(child)
+				table.insert(self.Data.DescendantData[i], child)
+			end)
+		end
+		for index, value in next, self.Data.DescendantData[i] do
 			if value:IsA("Decal") then
 				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
 		end
 		i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 	end
-	for i, v in next, self.Data.Model:GetDescendants() do
+	for i, v in next, self.Data.DescendantData[self.Data.Model] do
 		if v:IsA("Weld") then
 			v:Destroy()
 		end
