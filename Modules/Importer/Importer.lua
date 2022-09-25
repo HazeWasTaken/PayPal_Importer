@@ -280,6 +280,11 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 
 	local ReplicatedStorageClone = self:LoadModel()
 
+	if not ReplicatedStorageClone:FindFirstChild("Preset") then
+        local Model = Instance.new("Model", ReplicatedStorageClone)
+        Model.Name = "Preset"
+    end
+
 	for i, v in next, ReplicatedStorageClone:GetDescendants() do
 		if v:IsA("BasePart") then
 			v.CanCollide = true

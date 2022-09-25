@@ -671,6 +671,11 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 
 	local ReplicatedStorageClone = self:LoadModel()
 
+	if not ReplicatedStorageClone:FindFirstChild("Preset") then
+        local Model = Instance.new("Model", ReplicatedStorageClone)
+        Model.Name = "Preset"
+    end
+
 	for i, v in next, ReplicatedStorageClone:GetDescendants() do
 		if v:IsA("BasePart") then
 			v.CanCollide = true
@@ -3086,6 +3091,7 @@ Env.ResetSelector = function()
 	CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = ""})
 	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", AltText = ""})
 	CreateUi.Data.GlobalUi.Settings.Height.Update(function() end, {Text = "0"})
+	CreateUi.Data.GlobalUi.Settings.SimulateWheels.Update(function() end, {State = false})
 	CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
 	CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function() end, {Text = "Packet", AltText = ""})
 	Env.GetConfig = function()
