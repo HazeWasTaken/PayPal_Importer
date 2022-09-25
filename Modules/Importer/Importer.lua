@@ -457,7 +457,11 @@ Importer.Data.ImportPacket.Update = function(self)
 	if not self.Data.DescendantData[self.Data.Chassis] then
 		self.Data.DescendantData[self.Data.Chassis] = self.Data.Chassis:GetDescendants()
 		self.Data.Chassis.DescendantAdded:Connect(function(descendant)
-			table.insert(self.Data.DescendantData[self.Data.Chassis], descendant)
+			self.Data.DescendantData[self.Data.Chassis] = self.Data.Chassis:GetDescendants()
+		end)
+		self.Data.Chassis.DescendantRemoving:Connect(function(descendant)
+			descendant:GetPropertyChangedSignal("Parent"):Wait()
+			self.Data.DescendantData[self.Data.Chassis] = self.Data.Chassis:GetDescendants()
 		end)
 	end
 	for i, v in next, self.Data.DescendantData[self.Data.Chassis] do
@@ -469,7 +473,10 @@ Importer.Data.ImportPacket.Update = function(self)
 		if not self.Data.ChildData[v.MeshPart] then
 			self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
 			v.MeshPart.ChildAdded:Connect(function(child)
-				table.insert(self.Data.ChildData[v.MeshPart], child)
+				self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
+			end)
+			v.MeshPart.ChildRemoved:Connect(function(child)
+				self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
 			end)
 		end
 		for index, value in next, self.Data.ChildData[v.MeshPart] do
@@ -483,7 +490,10 @@ Importer.Data.ImportPacket.Update = function(self)
 		if not self.Data.ChildData[i] then
 			self.Data.ChildData[i] = i:GetChildren()
 			i.ChildAdded:Connect(function(child)
-				table.insert(self.Data.ChildData[i], child)
+				self.Data.ChildData[i] = i:GetChildren()
+			end)
+			i.ChildRemoved:Connect(function(child)
+				self.Data.ChildData[i] = i:GetChildren()
 			end)
 		end
 		for index, value in next, self.Data.ChildData[i] do
@@ -496,7 +506,11 @@ Importer.Data.ImportPacket.Update = function(self)
 	if not self.Data.DescendantData[self.Data.Model] then
 		self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
 		self.Data.Model.DescendantAdded:Connect(function(descendant)
-			table.insert(self.Data.DescendantData[self.Data.Model], descendant)
+			self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
+		end)
+		self.Data.Model.DescendantRemoving:Connect(function(descendant)
+			descendant:GetPropertyChangedSignal("Parent"):Wait()
+			self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
 		end)
 	end
 	for i, v in next, self.Data.DescendantData[self.Data.Model] do
@@ -523,7 +537,10 @@ Importer.Data.ImportPacket.Update = function(self)
 	if not self.Data.ChildData[self.Data.Model] then
 		self.Data.ChildData[self.Data.Model] = self.Data.Model:GetChildren()
 		self.Data.Model.ChildAdded:Connect(function(descendant)
-			table.insert(self.Data.ChildData[self.Data.Model], descendant)
+			self.Data.ChildData[self.Data.Model] = self.Data.Model:GetChildren()
+		end)
+		self.Data.Model.ChildRemoved:Connect(function(descendant)
+			self.Data.ChildData[self.Data.Model] = self.Data.Model:GetChildren()
 		end)
 	end
 	for i, v in next, self.Data.ChildData[self.Data.Model] do
@@ -542,7 +559,10 @@ Importer.Data.ImportPacket.Update = function(self)
 	if not self.Data.ChildData[self.Data.Model.Model] then
 		self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
 		self.Data.Model.Model.ChildAdded:Connect(function(descendant)
-			table.insert(self.Data.ChildData[self.Data.Model.Model], descendant)
+			self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
+		end)
+		self.Data.Model.Model.ChildRemoved:Connect(function(descendant)
+			self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
 		end)
 	end
 	for i,v in next, self.Data.ChildData[self.Data.Model.Model] do
@@ -558,7 +578,7 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
-	for i, v in next, self.Data.ChildData[self.Data.Model.Model] do
+	for i, v in next, self.Data.ChildData[self.Data.Model] do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
 			local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
