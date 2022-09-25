@@ -1147,6 +1147,11 @@ Env.MCreateUi = function(Name)
                         Input.TextXAlignment = Enum.TextXAlignment.Left
                         Input.Parent = Frame
 
+                        local DropdownLibrary = {}
+
+                        DropdownLibrary.Enabled = false
+                        DropdownLibrary.Tweening = false
+
                         RunService.Heartbeat:Connect(function()
                             for i,v in next, Options_Instances do
                                 if string.find(v.Name:lower(), Input.Text:lower()) then
@@ -1157,25 +1162,23 @@ Env.MCreateUi = function(Name)
                             end
                         end)
 
-                        local Enabled, Tweening = false, false
-
                         RunService.Heartbeat:Connect(function()
-                            if not Tweening then
-                                Dropdown.Size = Enabled and UDim2.new(0, 389, 0, UIListLayout.AbsoluteContentSize.Y + 35) or UDim2.new(0, 389, 0, 26)
+                            if not DropdownLibrary.Tweening then
+                                Dropdown.Size = DropdownLibrary.Enabled and UDim2.new(0, 389, 0, UIListLayout.AbsoluteContentSize.Y + 35) or UDim2.new(0, 389, 0, 26)
                             end
                         end)
 
                         Dropdown.MouseButton1Down:Connect(function(x, y)
-                            Enabled = not Enabled
-                            Tweening = not Tweening
+                            DropdownLibrary.Enabled = not DropdownLibrary.Enabled
+                            DropdownLibrary.Tweening = not DropdownLibrary.Tweening
                             TweenService:Create(DropdownIcon, TweenInfo.new(.25), {
-                                Rotation = Enabled and 0 or 90
+                                Rotation = DropdownLibrary.Enabled and 0 or 90
                             }):Play()
                             TweenService:Create(Dropdown, TweenInfo.new(.25), {
-                                Size = Enabled and UDim2.new(0, 389, 0, UIListLayout.AbsoluteContentSize.Y + 35) or UDim2.new(0, 389, 0, 26)
+                                Size = DropdownLibrary.Enabled and UDim2.new(0, 389, 0, UIListLayout.AbsoluteContentSize.Y + 35) or UDim2.new(0, 389, 0, 26)
                             }):Play()
                             task.wait(.26)
-                            Tweening = not Tweening
+                            DropdownLibrary.Tweening = not DropdownLibrary.Tweening
                         end)
 
                         Frame.MouseEnter:Connect(function(x, y)
@@ -1193,8 +1196,6 @@ Env.MCreateUi = function(Name)
                         Dropdown.MouseLeave:Connect(function(x, y)
                             TweenService:Create(DropdownIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
                         end)
-
-                        local DropdownLibrary = {}
 
                         DropdownLibrary.AddOption = function(OptionData)
                             local Button = Instance.new("TextButton")
@@ -1243,24 +1244,30 @@ Env.MCreateUi = function(Name)
                             ButtonIcon.Image = "rbxassetid://6764432293"
                             ButtonIcon.Parent = Button
 
-                            Button.MouseEnter:Connect(function(x, y)
+                            local MouseEnter = Button.MouseEnter:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait()
                                 OptionData.Enter()
                             end)
 
-                            Button.MouseLeave:Connect(function(x, y)
+                            local MouseLeave = Button.MouseLeave:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
                                 OptionData.Leave()
                             end)
 
-                            Button.MouseButton1Down:Connect(function(x, y)
+                            local ButtonDown = Button.MouseButton1Down:Connect(function(x, y)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait(.126)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
                                 Data.AltText = OptionData.Name
                                 DropdownName.Text = Data.Name .. " : " .. Data.AltText
                                 Callback(OptionData.Data, OptionData.Name)
+                            end)
+
+                            Button.Destroying:Connect(function()
+                                MouseEnter:Disconnect()
+                                MouseLeave:Disconnect()
+                                ButtonDown:Disconnect()
                             end)
                         end
 
@@ -1273,6 +1280,7 @@ Env.MCreateUi = function(Name)
                         DropdownLibrary.ClearOptions = function()
                             for i,v in next, Options_Instances do
                                 v:Destroy()
+                                Options_Instances[i] = nil
                             end
                         end
 

@@ -147,14 +147,18 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 		})
 	end
 
-	ReConstruct = function()
-		Dropdown:ClearOptions()
+	local calls = 0
 
-		for i,v in next, Workspace.Vehicles:GetChildren() do
-			AddVehicle(v)
+	ReConstruct = function()
+		if Dropdown.Enabled then
+			Dropdown:ClearOptions()
+
+			for i,v in next, Workspace.Vehicles:GetChildren() do
+				AddVehicle(v)
+			end
 		end
 
-		task.wait(5)
+		task.wait(1)
 		ReConstruct()
 	end
 	coroutine.wrap(function()

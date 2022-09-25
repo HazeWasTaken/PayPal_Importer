@@ -140,9 +140,9 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Env.GetNearestThrust = function(Wheel)
+Env.GetNearestThrust = function(Packet, Wheel)
 	local Thrust, Distance = nil, 9e9
-	for i, v in next, Wheel.Parent:GetChildren() do
+	for i, v in next, (Packet.Data.ChildData[Wheel.Parent] or Wheel.Parent:GetChildren()) do
 		if v.Name == "Thrust" then
 			local Magnitude = math.abs((Wheel.Wheel.Position - v.Position).Magnitude)
 			if Distance > Magnitude then
@@ -188,6 +188,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			RelativeThrust = {},
 			Connections = {},
 			DescendantData = {},
+			ChildData = {},
 			SeatCF = nil,
 			RelativeSteeringWheel = nil,
 			LargestWheelSize = 0
@@ -361,7 +362,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 				Wheel = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Wheel.CFrame),
 			}
 
-			local Thrust, Connection = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+			local Thrust, Connection = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
 			self.Data.RelativeThrust[Thrust] = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(Thrust.CFrame)
 			Connection = self.Data.Chassis[v.Name].DescendantAdded:Connect(function(descendant)
                 if not self.Data.Model.Parent then
@@ -409,7 +410,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			CollectionService:RemoveTag(self.Data.Chassis, "Overlayed")
 			for i, v in next, self.Data.Model:GetChildren() do
 				if string.find(v.Name, "Wheel") and v:IsA("Model") then
-					local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+					local Thrust = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
 					local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 					Thrust.Position = ThrustCF.Position
 					self.Data.Chassis[v.Name].Rim.Size = self.Data.WheelSize.Rim
@@ -459,27 +460,19 @@ Importer.Data.ImportPacket.Update = function(self)
 			table.insert(self.Data.DescendantData[self.Data.Chassis], descendant)
 		end)
 	end
-
-	if not self.Data.DescendantData[self.Data.Model] then
-		self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
-		self.Data.Model.DescendantAdded:Connect(function(descendant)
-			table.insert(self.Data.DescendantData[self.Data.Model], descendant)
-		end)
-	end
-
 	for i, v in next, self.Data.DescendantData[self.Data.Chassis] do
 		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not Importer.Functions.WheelDescendant(self.Data.RealWheels, v) then
 			v.Transparency = 1
 		end
 	end
 	for i,v in next, self.Data.Wheels do
-		if not self.Data.DescendantData[v.MeshPart] then
-			self.Data.DescendantData[v.MeshPart] = v.MeshPart:GetChildren()
+		if not self.Data.ChildData[v.MeshPart] then
+			self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
 			v.MeshPart.ChildAdded:Connect(function(child)
-				table.insert(self.Data.DescendantData[v.MeshPart], child)
+				table.insert(self.Data.ChildData[v.MeshPart], child)
 			end)
 		end
-		for index, value in next, self.Data.DescendantData[v.MeshPart] do
+		for index, value in next, self.Data.ChildData[v.MeshPart] do
 			if value:IsA("Decal") then
 				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
@@ -487,18 +480,24 @@ Importer.Data.ImportPacket.Update = function(self)
 		v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
 	end
 	for i,v in next, self.Data.RealWheels do
-		if not self.Data.DescendantData[i] then
-			self.Data.DescendantData[i] = i:GetChildren()
+		if not self.Data.ChildData[i] then
+			self.Data.ChildData[i] = i:GetChildren()
 			i.ChildAdded:Connect(function(child)
-				table.insert(self.Data.DescendantData[i], child)
+				table.insert(self.Data.ChildData[i], child)
 			end)
 		end
-		for index, value in next, self.Data.DescendantData[i] do
+		for index, value in next, self.Data.ChildData[i] do
 			if value:IsA("Decal") then
 				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
 		end
 		i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
+	end
+	if not self.Data.DescendantData[self.Data.Model] then
+		self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
+		self.Data.Model.DescendantAdded:Connect(function(descendant)
+			table.insert(self.Data.DescendantData[self.Data.Model], descendant)
+		end)
 	end
 	for i, v in next, self.Data.DescendantData[self.Data.Model] do
 		if v:IsA("Weld") then
@@ -520,9 +519,16 @@ Importer.Data.ImportPacket.Update = function(self)
 	end
 
 	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
-	for i, v in next, self.Data.Model:GetChildren() do
+
+	if not self.Data.ChildData[self.Data.Model] then
+		self.Data.ChildData[self.Data.Model] = self.Data.Model:GetChildren()
+		self.Data.Model.ChildAdded:Connect(function(descendant)
+			table.insert(self.Data.ChildData[self.Data.Model], descendant)
+		end)
+	end
+	for i, v in next, self.Data.ChildData[self.Data.Model] do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
-			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+			local Thrust = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
 			local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 			local WorldCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
 			Thrust.Position = HasPlayer and not self.Settings.SimulateWheels and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
@@ -533,7 +539,13 @@ Importer.Data.ImportPacket.Update = function(self)
 		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 	end
 
-	for i,v in next, self.Data.Model.Model:GetChildren() do
+	if not self.Data.ChildData[self.Data.Model.Model] then
+		self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
+		self.Data.Model.Model.ChildAdded:Connect(function(descendant)
+			table.insert(self.Data.ChildData[self.Data.Model.Model], descendant)
+		end)
+	end
+	for i,v in next, self.Data.ChildData[self.Data.Model.Model] do
 		if v.Name == "Brakelights" then
 			v.Material = self.Data.Chassis.Model.Brakelights.Material
 		end
@@ -546,7 +558,7 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
-	for i, v in next, self.Data.Model:GetChildren() do
+	for i, v in next, self.Data.ChildData[self.Data.Model.Model] do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
 			local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)

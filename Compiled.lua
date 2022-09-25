@@ -531,9 +531,9 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Env.GetNearestThrust = function(Wheel)
+Env.GetNearestThrust = function(Packet, Wheel)
 	local Thrust, Distance = nil, 9e9
-	for i, v in next, Wheel.Parent:GetChildren() do
+	for i, v in next, (Packet.Data.ChildData[Wheel.Parent] or Wheel.Parent:GetChildren()) do
 		if v.Name == "Thrust" then
 			local Magnitude = math.abs((Wheel.Wheel.Position - v.Position).Magnitude)
 			if Distance > Magnitude then
@@ -579,6 +579,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			RelativeThrust = {},
 			Connections = {},
 			DescendantData = {},
+			ChildData = {},
 			SeatCF = nil,
 			RelativeSteeringWheel = nil,
 			LargestWheelSize = 0
@@ -752,7 +753,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 				Wheel = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Wheel.CFrame),
 			}
 
-			local Thrust, Connection = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+			local Thrust, Connection = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
 			self.Data.RelativeThrust[Thrust] = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(Thrust.CFrame)
 			Connection = self.Data.Chassis[v.Name].DescendantAdded:Connect(function(descendant)
                 if not self.Data.Model.Parent then
@@ -800,7 +801,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			CollectionService:RemoveTag(self.Data.Chassis, "Overlayed")
 			for i, v in next, self.Data.Model:GetChildren() do
 				if string.find(v.Name, "Wheel") and v:IsA("Model") then
-					local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+					local Thrust = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
 					local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 					Thrust.Position = ThrustCF.Position
 					self.Data.Chassis[v.Name].Rim.Size = self.Data.WheelSize.Rim
@@ -850,27 +851,19 @@ Importer.Data.ImportPacket.Update = function(self)
 			table.insert(self.Data.DescendantData[self.Data.Chassis], descendant)
 		end)
 	end
-
-	if not self.Data.DescendantData[self.Data.Model] then
-		self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
-		self.Data.Model.DescendantAdded:Connect(function(descendant)
-			table.insert(self.Data.DescendantData[self.Data.Model], descendant)
-		end)
-	end
-
 	for i, v in next, self.Data.DescendantData[self.Data.Chassis] do
 		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not Importer.Functions.WheelDescendant(self.Data.RealWheels, v) then
 			v.Transparency = 1
 		end
 	end
 	for i,v in next, self.Data.Wheels do
-		if not self.Data.DescendantData[v.MeshPart] then
-			self.Data.DescendantData[v.MeshPart] = v.MeshPart:GetChildren()
+		if not self.Data.ChildData[v.MeshPart] then
+			self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
 			v.MeshPart.ChildAdded:Connect(function(child)
-				table.insert(self.Data.DescendantData[v.MeshPart], child)
+				table.insert(self.Data.ChildData[v.MeshPart], child)
 			end)
 		end
-		for index, value in next, self.Data.DescendantData[v.MeshPart] do
+		for index, value in next, self.Data.ChildData[v.MeshPart] do
 			if value:IsA("Decal") then
 				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
@@ -878,18 +871,24 @@ Importer.Data.ImportPacket.Update = function(self)
 		v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
 	end
 	for i,v in next, self.Data.RealWheels do
-		if not self.Data.DescendantData[i] then
-			self.Data.DescendantData[i] = i:GetChildren()
+		if not self.Data.ChildData[i] then
+			self.Data.ChildData[i] = i:GetChildren()
 			i.ChildAdded:Connect(function(child)
-				table.insert(self.Data.DescendantData[i], child)
+				table.insert(self.Data.ChildData[i], child)
 			end)
 		end
-		for index, value in next, self.Data.DescendantData[i] do
+		for index, value in next, self.Data.ChildData[i] do
 			if value:IsA("Decal") then
 				value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
 			end
 		end
 		i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
+	end
+	if not self.Data.DescendantData[self.Data.Model] then
+		self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
+		self.Data.Model.DescendantAdded:Connect(function(descendant)
+			table.insert(self.Data.DescendantData[self.Data.Model], descendant)
+		end)
 	end
 	for i, v in next, self.Data.DescendantData[self.Data.Model] do
 		if v:IsA("Weld") then
@@ -911,9 +910,16 @@ Importer.Data.ImportPacket.Update = function(self)
 	end
 
 	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
-	for i, v in next, self.Data.Model:GetChildren() do
+
+	if not self.Data.ChildData[self.Data.Model] then
+		self.Data.ChildData[self.Data.Model] = self.Data.Model:GetChildren()
+		self.Data.Model.ChildAdded:Connect(function(descendant)
+			table.insert(self.Data.ChildData[self.Data.Model], descendant)
+		end)
+	end
+	for i, v in next, self.Data.ChildData[self.Data.Model] do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
-			local Thrust = Importer.Functions.GetNearestThrust(self.Data.Chassis[v.Name])
+			local Thrust = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
 			local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 			local WorldCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
 			Thrust.Position = HasPlayer and not self.Settings.SimulateWheels and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
@@ -924,7 +930,13 @@ Importer.Data.ImportPacket.Update = function(self)
 		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 	end
 
-	for i,v in next, self.Data.Model.Model:GetChildren() do
+	if not self.Data.ChildData[self.Data.Model.Model] then
+		self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
+		self.Data.Model.Model.ChildAdded:Connect(function(descendant)
+			table.insert(self.Data.ChildData[self.Data.Model.Model], descendant)
+		end)
+	end
+	for i,v in next, self.Data.ChildData[self.Data.Model.Model] do
 		if v.Name == "Brakelights" then
 			v.Material = self.Data.Chassis.Model.Brakelights.Material
 		end
@@ -937,7 +949,7 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
-	for i, v in next, self.Data.Model:GetChildren() do
+	for i, v in next, self.Data.ChildData[self.Data.Model.Model] do
 		if string.find(v.Name, "Wheel") and v:IsA("Model") then
 			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
 			local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
@@ -2319,6 +2331,11 @@ Env.MCreateUi = function(Name)
                         Input.TextXAlignment = Enum.TextXAlignment.Left
                         Input.Parent = Frame
 
+                        local DropdownLibrary = {}
+
+                        DropdownLibrary.Enabled = false
+                        DropdownLibrary.Tweening = false
+
                         RunService.Heartbeat:Connect(function()
                             for i,v in next, Options_Instances do
                                 if string.find(v.Name:lower(), Input.Text:lower()) then
@@ -2329,25 +2346,23 @@ Env.MCreateUi = function(Name)
                             end
                         end)
 
-                        local Enabled, Tweening = false, false
-
                         RunService.Heartbeat:Connect(function()
-                            if not Tweening then
-                                Dropdown.Size = Enabled and UDim2.new(0, 389, 0, UIListLayout.AbsoluteContentSize.Y + 35) or UDim2.new(0, 389, 0, 26)
+                            if not DropdownLibrary.Tweening then
+                                Dropdown.Size = DropdownLibrary.Enabled and UDim2.new(0, 389, 0, UIListLayout.AbsoluteContentSize.Y + 35) or UDim2.new(0, 389, 0, 26)
                             end
                         end)
 
                         Dropdown.MouseButton1Down:Connect(function(x, y)
-                            Enabled = not Enabled
-                            Tweening = not Tweening
+                            DropdownLibrary.Enabled = not DropdownLibrary.Enabled
+                            DropdownLibrary.Tweening = not DropdownLibrary.Tweening
                             TweenService:Create(DropdownIcon, TweenInfo.new(.25), {
-                                Rotation = Enabled and 0 or 90
+                                Rotation = DropdownLibrary.Enabled and 0 or 90
                             }):Play()
                             TweenService:Create(Dropdown, TweenInfo.new(.25), {
-                                Size = Enabled and UDim2.new(0, 389, 0, UIListLayout.AbsoluteContentSize.Y + 35) or UDim2.new(0, 389, 0, 26)
+                                Size = DropdownLibrary.Enabled and UDim2.new(0, 389, 0, UIListLayout.AbsoluteContentSize.Y + 35) or UDim2.new(0, 389, 0, 26)
                             }):Play()
                             task.wait(.26)
-                            Tweening = not Tweening
+                            DropdownLibrary.Tweening = not DropdownLibrary.Tweening
                         end)
 
                         Frame.MouseEnter:Connect(function(x, y)
@@ -2365,8 +2380,6 @@ Env.MCreateUi = function(Name)
                         Dropdown.MouseLeave:Connect(function(x, y)
                             TweenService:Create(DropdownIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
                         end)
-
-                        local DropdownLibrary = {}
 
                         DropdownLibrary.AddOption = function(OptionData)
                             local Button = Instance.new("TextButton")
@@ -2415,24 +2428,30 @@ Env.MCreateUi = function(Name)
                             ButtonIcon.Image = "rbxassetid://6764432293"
                             ButtonIcon.Parent = Button
 
-                            Button.MouseEnter:Connect(function(x, y)
+                            local MouseEnter = Button.MouseEnter:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait()
                                 OptionData.Enter()
                             end)
 
-                            Button.MouseLeave:Connect(function(x, y)
+                            local MouseLeave = Button.MouseLeave:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
                                 OptionData.Leave()
                             end)
 
-                            Button.MouseButton1Down:Connect(function(x, y)
+                            local ButtonDown = Button.MouseButton1Down:Connect(function(x, y)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait(.126)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
                                 Data.AltText = OptionData.Name
                                 DropdownName.Text = Data.Name .. " : " .. Data.AltText
                                 Callback(OptionData.Data, OptionData.Name)
+                            end)
+
+                            Button.Destroying:Connect(function()
+                                MouseEnter:Disconnect()
+                                MouseLeave:Disconnect()
+                                ButtonDown:Disconnect()
                             end)
                         end
 
@@ -2445,6 +2464,7 @@ Env.MCreateUi = function(Name)
                         DropdownLibrary.ClearOptions = function()
                             for i,v in next, Options_Instances do
                                 v:Destroy()
+                                Options_Instances[i] = nil
                             end
                         end
 
@@ -3150,14 +3170,18 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 		})
 	end
 
-	ReConstruct = function()
-		Dropdown:ClearOptions()
+	local calls = 0
 
-		for i,v in next, Workspace.Vehicles:GetChildren() do
-			AddVehicle(v)
+	ReConstruct = function()
+		if Dropdown.Enabled then
+			Dropdown:ClearOptions()
+
+			for i,v in next, Workspace.Vehicles:GetChildren() do
+				AddVehicle(v)
+			end
 		end
 
-		task.wait(5)
+		task.wait(1)
 		ReConstruct()
 	end
 	coroutine.wrap(function()
