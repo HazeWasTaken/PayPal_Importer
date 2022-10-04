@@ -1,4 +1,8 @@
-Vehicle_Importer = {['Modules/ImportChecks/VehicleChecks.lua'] = function()
+Vehicle_Importer = {Images = {
+},
+Modules = {
+ImportChecks = {
+VehicleChecks = function()
 local VehicleChecks, Env = {
 	Module = {
 		Functions = {},
@@ -86,7 +90,9 @@ end
 
 return VehicleChecks.Module
 end,
-['Modules/Importer/Customization.lua'] = function()
+},
+Importer = {
+Customization = function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -388,7 +394,7 @@ end
 
 return Customization.Module
 end,
-['Modules/Importer/Importer.lua'] = function()
+Importer = function()
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -509,6 +515,8 @@ Importer.Data.Vehicle.GetLocalVehicleModel = function()
     return GetLocalVehicleModel()
 end
 
+local getDefaultVehicleModel
+
 pcall(function()
 	getDefaultVehicleModel = hookfunction(Importer.Functions.getDefaultVehicleModel, function(Make, Type)
 		local CollectionService = game:GetService("CollectionService")
@@ -590,13 +598,6 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 		__index = self
 	})
 
-	setmetatable(Packet.Settings, {
-		__newindex = function(table, key, value)
-			rawset(table, key, value)
-			ReadWrite.Functions.WriteConfig(Packet)
-		end
-	})
-
 	Importer.Data.Packets[Packet.Data.Key] = Packet
 
 	ReadWrite.Functions.WriteConfig(Packet)
@@ -614,10 +615,12 @@ end
 
 Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 	self.Settings.Height = Height
+	ReadWrite.Functions.WriteConfig(self)
 end
 
 Importer.Data.ImportPacket.UpdateWheelSimulation = function(self, SimulateWheels)
 	self.Settings.SimulateWheels = SimulateWheels
+	ReadWrite.Functions.WriteConfig(self)
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
@@ -1021,7 +1024,9 @@ end
 
 return Importer.Module
 end,
-['Modules/Initialize/Initialize.lua'] = function()
+},
+Initialize = {
+Initialize = function()
 local Initialize, Env = {
 	Module = {
 		Functions = {},
@@ -1054,7 +1059,9 @@ end
 
 return Initialize.Module
 end,
-['Modules/Packet/Packet.lua'] = function()
+},
+Packet = {
+Packet = function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Packet, Env = {
@@ -1128,7 +1135,9 @@ end
 
 return Packet.Module
 end,
-['Modules/ReadWrite/ReadWrite.lua'] = function()
+},
+ReadWrite = {
+ReadWrite = function()
 local HttpService = game:GetService("HttpService")
 local ReadWrite, Env = {
 	Module = {
@@ -1206,7 +1215,9 @@ end
 
 return ReadWrite.Module
 end,
-['Modules/Ui/Library.lua'] = function()
+},
+Ui = {
+Library = function()
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -3045,7 +3056,10 @@ end
 
 return Library.Module
 end,
-['Ui/Create.lua'] = function()
+},
+},
+Ui = {
+Create = function()
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -3520,6 +3534,7 @@ end
 return CreateUi.Module
 
 end,
+},
 }
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -3537,9 +3552,24 @@ end
 local Loaded = {}
 
 import = function(dir)
-    if not Loaded[dir] then
-        Loaded[dir] = Vehicle_Importer[dir]()
+    local Split = string.split(dir, "/")
+    local Data = Vehicle_Importer
+
+    Split[#Split] = string.split(Split[#Split], ".")[1]
+
+    for i = 1 , #Split  do
+        Data = Data[Split[i]]
     end
+
+    if not Loaded[dir] and typeof(Data) == "function" then
+        Loaded[dir] = Data()
+    elseif typeof(Data) == "table" then
+        Loaded[dir] = {}
+        for i, v in next, Data do
+            Loaded[dir][i] = import(dir .. "/" .. i)
+        end
+    end
+
     return Loaded[dir]
 end
 

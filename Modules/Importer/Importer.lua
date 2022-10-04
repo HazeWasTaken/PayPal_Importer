@@ -118,6 +118,8 @@ Importer.Data.Vehicle.GetLocalVehicleModel = function()
     return GetLocalVehicleModel()
 end
 
+local getDefaultVehicleModel
+
 pcall(function()
 	getDefaultVehicleModel = hookfunction(Importer.Functions.getDefaultVehicleModel, function(Make, Type)
 		local CollectionService = game:GetService("CollectionService")
@@ -199,13 +201,6 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 		__index = self
 	})
 
-	setmetatable(Packet.Settings, {
-		__newindex = function(table, key, value)
-			rawset(table, key, value)
-			ReadWrite.Functions.WriteConfig(Packet)
-		end
-	})
-
 	Importer.Data.Packets[Packet.Data.Key] = Packet
 
 	ReadWrite.Functions.WriteConfig(Packet)
@@ -223,10 +218,12 @@ end
 
 Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
 	self.Settings.Height = Height
+	ReadWrite.Functions.WriteConfig(self)
 end
 
 Importer.Data.ImportPacket.UpdateWheelSimulation = function(self, SimulateWheels)
 	self.Settings.SimulateWheels = SimulateWheels
+	ReadWrite.Functions.WriteConfig(self)
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)

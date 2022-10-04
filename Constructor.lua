@@ -14,9 +14,24 @@ end
 local Loaded = {}
 
 import = function(dir)
-    if not Loaded[dir] then
-        Loaded[dir] = Vehicle_Importer[dir]()
+    local Split = string.split(dir, "/")
+    local Data = Vehicle_Importer
+
+    Split[#Split] = string.split(Split[#Split], ".")[1]
+
+    for i = 1 , #Split  do
+        Data = Data[Split[i]]
     end
+
+    if not Loaded[dir] and typeof(Data) == "function" then
+        Loaded[dir] = Data()
+    elseif typeof(Data) == "table" then
+        Loaded[dir] = {}
+        for i, v in next, Data do
+            Loaded[dir][i] = import(dir .. "/" .. i)
+        end
+    end
+
     return Loaded[dir]
 end
 
