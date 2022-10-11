@@ -73,7 +73,7 @@ Env.MRunCheck = function(Data)
 		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. Data)[1]
 	end)
 
-	if not Success or not Response then
+	if not Success or not Response or typeof(Response) ~= "Instance" then
 		return (Response or "Failed to load model"), Vector2.new(0, 600)
 	end
 
