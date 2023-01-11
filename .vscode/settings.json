@@ -1,6 +1,6 @@
 {
     "robloxLsp.diagnostics.globals": [
-        "Vehicle_Importer",
+        "PayPal_Importer",
         "setclipboard",
         "iuaghsf",
         "import",
@@ -15,6 +15,16 @@
         "isfolder",
         "readfile",
         "writefile",
-        "isfile"
+        "isfile",
+        "HttpService",
+        "ReplicatedStorage",
+        "RunService",
+        "CollectionService",
+        "Workspace",
+        "Players",
+        "TweenService",
+        "UserInputService",
+        "CoreGui",
+        "MarketplaceService"
     ]
 }

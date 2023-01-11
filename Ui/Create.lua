@@ -1,18 +1,10 @@
-local MarketplaceService = game:GetService("MarketplaceService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
 local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 local Importer = import("Modules/Importer/Importer.lua")
 local Packet = import("Modules/Packet/Packet.lua")
 
-local CreateUi, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local CreateUi = {
 	Data = {
 		GlobalUi = {
 			ConfigList = {},
@@ -22,38 +14,23 @@ local CreateUi, Env = {
 		}
 	},
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(CreateUi.Functions, LMeta)
-setmetatable(CreateUi.Module.Functions, MMeta)
-
-Env.ResetSelector = function()
+CreateUi.Functions.ResetSelector = function()
 	CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = ""})
-	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", AltText = ""})
+	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", Text = ""})
 	CreateUi.Data.GlobalUi.Settings.Height.Update(function() end, {Text = "0"})
 	CreateUi.Data.GlobalUi.Settings.SimulateWheels.Update(function() end, {State = false})
 	CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
-	CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function() end, {Text = "Packet", AltText = ""})
-	Env.GetConfig = function()
+	CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function() end, {Name = "Packet", Text = ""})
+	CreateUi.Functions.GetConfig = function()
 		return
 	end
 	CreateUi.Data.GlobalUi.Packets.NewValueTextBox.Update(function() end, {Text = ""})
 	CreateUi.Data.GlobalUi.Manage.Init.Update(function() end,{Name = "Initialize"})
 end
 
-Env.CreateInitConfigButton = function(Section)-- Selected Config Button
+CreateUi.Functions.CreateInitConfigButton = function(Section)-- Selected Config Button
 	local Button = Section.CreateButton(function() end, {Name = "Initialize"})
 
 	CreateUi.Data.GlobalUi.Manage.Init = Button
@@ -61,7 +38,7 @@ Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	return Button
 end
 
-Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
+CreateUi.Functions.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	local Section = Channel.CreateSection("Manage Config")
 
 	CreateUi.Functions.CreateInitConfigButton(Section)
@@ -69,7 +46,7 @@ Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	return Section
 end
 
-Env.CreateNewPacketValue = function(Section)
+CreateUi.Functions.CreateNewPacketValue = function(Section)
 	local TextBox = Section.CreateTextBox(function(Text) end, {Name = "New Packet Value", Text = ""})
 
 	CreateUi.Data.GlobalUi.Packets.NewValueTextBox = TextBox
@@ -77,7 +54,7 @@ Env.CreateNewPacketValue = function(Section)
 	return TextBox
 end
 
-Env.CreateSelectedPacketType = function(Section) -- Config Packet Type Label
+CreateUi.Functions.CreateSelectedPacketType = function(Section) -- Config Packet Type Label
 	local Lable = Section.CreateLabel({
 		Name = "Selected Packet Type",
 		Text = ""
@@ -88,15 +65,15 @@ Env.CreateSelectedPacketType = function(Section) -- Config Packet Type Label
 	return Lable
 end
 
-Env.CreatePacketListDropDown = function(Section) -- Config Packet Dropdown
-	local Dropdown = Section.CreateDropdown(function() end, {Name = "Packet", AltText = "", Options = {}})
+CreateUi.Functions.CreatePacketListDropDown = function(Section) -- Config Packet Dropdown
+	local Dropdown = Section.CreateDropdown(function() end, {Name = "Packet", Text = "", Options = {}})
 
 	CreateUi.Data.GlobalUi.Packets.Dropdown = Dropdown
 
 	return Dropdown
 end
 
-Env.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
+CreateUi.Functions.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
 	local Section = Channel.CreateSection("Config Packets")
 
 	CreateUi.Functions.CreatePacketListDropDown(Section)
@@ -106,7 +83,7 @@ Env.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
 	return Section
 end
 
-Env.CreateWheelSimulationToggle = function(Section)
+CreateUi.Functions.CreateWheelSimulationToggle = function(Section)
 	local Toggle = Section.CreateToggle(function() end, {Name = "Simulate Wheels ", State = false})
 
 	CreateUi.Data.GlobalUi.Settings.SimulateWheels = Toggle
@@ -114,7 +91,7 @@ Env.CreateWheelSimulationToggle = function(Section)
 	return Toggle
 end
 
-Env.CreateModelHeightTextBox = function(Section)
+CreateUi.Functions.CreateModelHeightTextBox = function(Section)
 	local TextBox = Section.CreateTextBox(function() end, {Name = "Height ", Text = "0",NumOnly = true})
 
 	CreateUi.Data.GlobalUi.Settings.Height = TextBox
@@ -122,17 +99,15 @@ Env.CreateModelHeightTextBox = function(Section)
 	return TextBox
 end
 
-Env.CreateSelectModelDropdown = function(Section) -- Selected Model
-	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Base Chassis", AltText = "", Options = {}}), {}
-
-	AddVehicle = function(Vehicle)
+CreateUi.Functions.CreateSelectModelDropdown = function(Section) -- Selected Model
+	local AddVehicle = function(Data, Vehicle)
 		local Seat = Vehicle:FindFirstChild("Seat")
 		local BoundingBox = Vehicle:FindFirstChild("BoundingBox")
 		local PlayerName = Seat and Seat:FindFirstChild("PlayerName") and Seat.PlayerName.Value or ""
 		if BoundingBox then
 			BoundingBox.Transparency = 1
 		end
-		Dropdown.AddOption({
+		table.insert(Data, {
 			Name = Vehicle.Name .. (PlayerName ~= "" and " : ".. PlayerName or ""),
 			Data = Vehicle,
 			Enter = function()
@@ -148,30 +123,23 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 		})
 	end
 
-	local calls = 0
 
-	ReConstruct = function()
-		if Dropdown.Enabled then
-			Dropdown:ClearOptions()
+	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Base Chassis", Text = "", Options = {}, UpdateData = function()
+		local Data = {}
 
-			for i,v in next, Workspace.Vehicles:GetChildren() do
-				AddVehicle(v)
-			end
+		for i,v in next, Workspace.Vehicles:GetChildren() do
+			AddVehicle(Data, v)
 		end
 
-		task.wait(1)
-		ReConstruct()
-	end
-	coroutine.wrap(function()
-		ReConstruct()
-	end)()
+		return Data
+	end}), {}
 
 	CreateUi.Data.GlobalUi.Settings.Models = Dropdown
 
 	return Dropdown
 end
 
-Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
+CreateUi.Functions.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 	local Section = Channel.CreateSection("Config Settings")
 
 	CreateUi.Functions.CreateSelectModelDropdown(Section)
@@ -181,7 +149,7 @@ Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 	return Section
 end
 
-Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
+CreateUi.Functions.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	Packet.Data.Button = CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
 		CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 		CreateUi.Data.GlobalUi.Settings.Models.Update(function(Model)
@@ -201,7 +169,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 					Callback = function() end
 				}
 			})
-		end, {Name = "Base Chassis", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
+		end, {Name = "Base Chassis", Text = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
 		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
@@ -227,7 +195,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 				Packet:NewPacketValue(Data, Text)
 			end, {})
 		end, {})
-		Env.GetConfig = function()
+		CreateUi.Functions.GetConfig = function()
 			return Packet
 		end
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
@@ -244,7 +212,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
 
-Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
+CreateUi.Functions.CreateSelectedConfigName = function(Section) -- Selected Config Label
 	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
 
 	CreateUi.Data.GlobalUi.ConfigList.Name = Label
@@ -252,7 +220,7 @@ Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
 	return Label
 end
 
-Env.CreateConfigListSection = function(Channel) -- Config List Section
+CreateUi.Functions.CreateConfigListSection = function(Channel) -- Config List Section
 	local Section = Channel.CreateSection("Configs")
 
 	CreateUi.Functions.CreateSelectedConfigName(Section)
@@ -262,7 +230,7 @@ Env.CreateConfigListSection = function(Channel) -- Config List Section
 	return Section
 end
 
-Env.CreateModelLoad = function(Category, Section) -- Model Load
+CreateUi.Functions.CreateModelLoad = function(Category, Section) -- Model Load
 	local Check = function(Data)
 		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
 
@@ -287,7 +255,7 @@ Env.CreateModelLoad = function(Category, Section) -- Model Load
 			}
 		})
 	end
-	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", AltText = "", Options = {}}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
+	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", Text = "", Options = {}}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
 
 	if getcustomasset then
 		coroutine.wrap(function()
@@ -318,7 +286,7 @@ Env.CreateModelLoad = function(Category, Section) -- Model Load
 	return Dropdown
 end
 
-Env.CreateNewConfigSection = function(Category, Channel) -- New Config Section
+CreateUi.Functions.CreateNewConfigSection = function(Category, Channel) -- New Config Section
 	local Section = Channel.CreateSection("New Config")
 
 	CreateUi.Functions.CreateModelLoad(Category, Section)
@@ -326,7 +294,7 @@ Env.CreateNewConfigSection = function(Category, Channel) -- New Config Section
 	return Section
 end
 
-Env.CreateImportChannel = function(Category) -- Importer Channel
+CreateUi.Functions.CreateImportChannel = function(Category) -- Importer Channel
 	local Channel = Category.CreateChannel("Importer")
 
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
@@ -338,7 +306,7 @@ Env.CreateImportChannel = function(Category) -- Importer Channel
 	return Channel
 end
 
-Env.CreateImportCategory = function(Guild) -- Importer Category
+CreateUi.Functions.CreateImportCategory = function(Guild) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
@@ -346,7 +314,7 @@ Env.CreateImportCategory = function(Guild) -- Importer Category
 	return Category
 end
 
-Env.FindInPacket = function(Data, Index)
+CreateUi.Functions.FindInPacket = function(Data, Index)
 	for i, v in next, Data do
 		if v.Index == Index then
 			return true
@@ -354,11 +322,11 @@ Env.FindInPacket = function(Data, Index)
 	end
 end
 
-Env.GetConfig = function()
+CreateUi.Functions.GetConfig = function()
 	return
 end
 
-Env.ModiyPacket = function(Category, v)
+CreateUi.Functions.ModiyPacket = function(Category, v)
 	local Config = CreateUi.Functions.GetConfig()
 	local Notif = Category.CreateNotif(not Config and "No config selected" or "Model Update", Vector2.new(200, 300), not Config and "Please select a config" or v.Type == "Instance" and "Modifying this type is not supported" or "Would you like to modify:\n\n" .. v.Dir, {
 		{
@@ -392,7 +360,7 @@ Env.ModiyPacket = function(Category, v)
 	})
 end
 
-Env.UpdatePacket = function(Category, Section)
+CreateUi.Functions.UpdatePacket = function(Category, Section)
 	local Displays = {}
 	RunService.Heartbeat:Connect(function()
 		if not Section.Content.Visible then
@@ -428,7 +396,7 @@ Env.UpdatePacket = function(Category, Section)
 	end)
 end
 
-Env.CreatePacketSection = function(Category, Channel)
+CreateUi.Functions.CreatePacketSection = function(Category, Channel)
 	local Section = Channel.CreateSection("Packet")
 
 	CreateUi.Functions.UpdatePacket(Category, Section)
@@ -436,7 +404,7 @@ Env.CreatePacketSection = function(Category, Channel)
 	return Section
 end
 
-Env.CreatePacketChannel = function(Category) -- Packet Channel
+CreateUi.Functions.CreatePacketChannel = function(Category) -- Packet Channel
 	local Channel = Category.CreateChannel("Packet")
 
 	CreateUi.Functions.CreatePacketSection(Category, Channel)
@@ -444,7 +412,7 @@ Env.CreatePacketChannel = function(Category) -- Packet Channel
 	return Channel
 end
 
-Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
+CreateUi.Functions.CreateVehcileCategory = function(Guild) -- Vehicle Category
 	local Category = Guild.CreateCategory("Vehicle")
 
 	CreateUi.Functions.CreatePacketChannel(Category)
@@ -452,7 +420,7 @@ Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
 	return Category
 end
 
-Env.CreateImporterGuild = function(Ui) -- Importer Guild
+CreateUi.Functions.CreateImporterGuild = function(Ui) -- Importer Guild
 	local Guild = Ui.CreateGuild("Importer", getcustomasset and isfile("jailbreak.png") and getcustomasset("jailbreak.png") or "", getcustomasset and isfile("badimo.webm") and getcustomasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)
@@ -461,7 +429,7 @@ Env.CreateImporterGuild = function(Ui) -- Importer Guild
 	return Guild
 end
 
-Env.MCreateUi = function()
+CreateUi.Functions.CreateUi = function()
 	local Ui = Library.Functions.CreateUi("Importer") -- Importer Ui
 
 	CreateUi.Functions.CreateImporterGuild(Ui)
@@ -469,4 +437,4 @@ Env.MCreateUi = function()
 	return Ui
 end
 
-return CreateUi.Module
+return CreateUi

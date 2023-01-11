@@ -1,34 +1,12 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
-local Customization, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local Customization = {
 	Data = {
         Spoiler = require(ReplicatedStorage.Game.Garage.StoreData.Spoiler),
         SpoilerCustomize = require(ReplicatedStorage.Game.Garage.Customize.Spoiler),
     },
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(Customization.Functions, LMeta)
-setmetatable(Customization.Module.Functions, MMeta)
-
-Env.GetSpoilerName = function(MeshId)
+Customization.Functions.GetSpoilerName = function(MeshId)
     for i,v in next, ReplicatedStorage.Resource.Spoiler:GetChildren() do
         if v.MeshId == MeshId then
             return v.Name
@@ -36,7 +14,7 @@ Env.GetSpoilerName = function(MeshId)
     end
 end
 
-Env.BodyColor = function(Packet, Item)
+Customization.Functions.BodyColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -49,7 +27,7 @@ Env.BodyColor = function(Packet, Item)
     end
 end
 
-Env.SecondBodyColor = function(Packet, Item)
+Customization.Functions.SecondBodyColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -62,7 +40,7 @@ Env.SecondBodyColor = function(Packet, Item)
     end
 end
 
-Env.SeatColor = function(Packet, Item)
+Customization.Functions.SeatColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -75,7 +53,7 @@ Env.SeatColor = function(Packet, Item)
     end
 end
 
-Env.HeadlightsColor = function(Packet, Item)
+Customization.Functions.HeadlightsColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -88,7 +66,7 @@ Env.HeadlightsColor = function(Packet, Item)
     end
 end
 
-Env.InteriorMainColor = function(Packet, Item)
+Customization.Functions.InteriorMainColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -101,7 +79,7 @@ Env.InteriorMainColor = function(Packet, Item)
     end
 end
 
-Env.InteriorDetailColor = function(Packet, Item)
+Customization.Functions.InteriorDetailColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -114,7 +92,7 @@ Env.InteriorDetailColor = function(Packet, Item)
     end
 end
 
-Env.WindowColor = function(Packet, Item)
+Customization.Functions.WindowColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -127,7 +105,7 @@ Env.WindowColor = function(Packet, Item)
     end
 end
 
-Env.WindowTint = function(Packet, Item)
+Customization.Functions.WindowTint = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -138,7 +116,7 @@ Env.WindowTint = function(Packet, Item)
     end
 end
 
-Env.SpoilerColor = function(Packet, Item)
+Customization.Functions.SpoilerColor = function(Packet, Item)
     local SpoilerPart = Packet.Data.Model:FindFirstChild("SpoilerPart")
     if SpoilerPart then
         Packet.Data.Model.SpoilerPart.Color = Item.Color
@@ -147,7 +125,7 @@ Env.SpoilerColor = function(Packet, Item)
     end
 end
 
-Env.Spoiler = function(Packet, Spoiler)
+Customization.Functions.Spoiler = function(Packet, Spoiler)
     local SpoilerName, SpoilerData = Customization.Functions.GetSpoilerName(Spoiler.MeshId)
     for i,v in next, Customization.Data.Spoiler.Items do
         if v.Name == SpoilerName then
@@ -162,47 +140,75 @@ Env.Spoiler = function(Packet, Spoiler)
     Customization.Data.SpoilerCustomize(SpoilerData, {
         Model = Packet.Data.Model
     })
-end
 
-Env.MConnectModel = function(Packet)
-    Packet.Data.Chassis.DescendantRemoving:Connect(function(RemovedDescendant)
-        if RemovedDescendant.Name == "SpoilerPart" then
-            RunService.Heartbeat:Wait()
-            local SpoilerPart = Packet.Data.Model:FindFirstChild("SpoilerPart")
-            if not Packet.Data.Chassis:FindFirstChild("SpoilerPart") and SpoilerPart then
-                SpoilerPart:Destroy()
-            end
+    Spoiler.Destroying:Connect(function()
+        RunService.Heartbeat:Wait()
+        local SpoilerPart = Packet.Data.Model:FindFirstChild("SpoilerPart")
+        if not Packet.Data.Chassis:FindFirstChild("SpoilerPart") and SpoilerPart then
+            SpoilerPart:Destroy()
         end
     end)
+end
+
+Customization.Functions.HyperChrome = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") or not Item:IsA("Texture") then
+        return
+    end
+
+    local NewItem = Item:Clone()
+
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == Item.Parent.Name then
+            NewItem.Parent = v
+        end
+    end
+
+    local Connection = Item:GetPropertyChangedSignal("Color3"):Connect(function()
+        NewItem.Color3 = Item.Color3
+    end)
+
+    Item.Destroying:Connect(function()
+        Connection:Disconnect()
+        NewItem:Destroy()
+    end)
+end
+
+Customization.Functions.ConnectModel = function(Packet)
     Packet.Data.Chassis.DescendantAdded:Connect(function(descendant)
         if descendant.Name == "SpoilerPart" then
-            for i,v in next, Packet.Data.Connections do
+            for i,v in next, Packet.Data.Connections.Spoiler do
                 v:Disconnect()
-                Packet.Data.Connections[i] = nil
+                Packet.Data.Connections.Spoiler[i] = nil
             end
             Customization.Functions.Spoiler(Packet, descendant)
             Customization.Functions.SpoilerColor(Packet, descendant)
-            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Color"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, descendant:GetPropertyChangedSignal("Color"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, descendant)
             end))
-            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Material"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, descendant:GetPropertyChangedSignal("Material"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, descendant)
             end))
-            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Reflectance"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, descendant:GetPropertyChangedSignal("Reflectance"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, descendant)
             end))
         end
+        if string.find(descendant.Name:lower(), "hyperchrome") then
+            Customization.Functions.HyperChrome(Packet, descendant)
+        end
     end)
 	for i,v in next, Packet.Data.Chassis.Model:GetDescendants() do
+        if string.find(v.Name:lower(), "hyperchrome") then
+            Customization.Functions.HyperChrome(Packet, v)
+        end
         if v.Name == "SpoilerPart" then
             Customization.Functions.Spoiler(Packet, v)
-            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Color"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, v:GetPropertyChangedSignal("Color"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, v)
             end))
-            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Material"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, v:GetPropertyChangedSignal("Material"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, v)
             end))
-            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, v:GetPropertyChangedSignal("Reflectance"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, v)
             end))
         end
@@ -297,4 +303,4 @@ Env.MConnectModel = function(Packet)
     end
 end
 
-return Customization.Module
+return Customization

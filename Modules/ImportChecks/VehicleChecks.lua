@@ -1,8 +1,4 @@
-local VehicleChecks, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local VehicleChecks = {
 	Data = {
 		Checks = {
 			WheelFrontLeft = {
@@ -36,24 +32,9 @@ local VehicleChecks, Env = {
 		}
 	},
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(VehicleChecks.Functions, LMeta)
-setmetatable(VehicleChecks.Module.Functions, MMeta)
-
-Env.CheckTable = function(Output, Check, Model, Path)
+VehicleChecks.Functions.CheckTable = function(Output, Check, Model, Path)
 	for i, v in next, Check do
 		if Model:FindFirstChild(i) then
 			VehicleChecks.Functions.CheckTable(Output, v, Model:FindFirstChild(i), Path .."." .. i)
@@ -63,7 +44,7 @@ Env.CheckTable = function(Output, Check, Model, Path)
 	end
 end
 
-Env.MRunCheck = function(Data)
+VehicleChecks.Functions.RunCheck = function(Data)
 	local Success, Response = pcall(function()
 		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. Data)[1]
 	end)
@@ -83,4 +64,4 @@ Env.MRunCheck = function(Data)
 	return Output.String:len() > 0 and Output.String or "Model is valid", Output.String:len() > 0 and Vector2.new(0, 600) or Vector2.new(0, 900)
 end
 
-return VehicleChecks.Module
+return VehicleChecks

@@ -1,18 +1,7 @@
-local CollectionService = game:GetService("CollectionService")
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
 local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 local Customization = import("Modules/Importer/Customization.lua")
 
-local Importer, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local Importer = {
 	Data = {
 		AlexChassis = require(ReplicatedStorage.Module.AlexChassis),
         Vehicle = require(ReplicatedStorage.Game.Vehicle),
@@ -22,22 +11,7 @@ local Importer, Env = {
 	Functions = {
 		getDefaultVehicleModel = require(ReplicatedStorage.Game.getDefaultVehicleModel)
     }
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
-
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(Importer.Functions, LMeta)
-setmetatable(Importer.Module.Functions, MMeta)
 
 local UpdateSteppedUpValues = debug.getupvalues(Importer.Data.AlexChassis.UpdateStepped)
 
@@ -142,7 +116,7 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Env.GetNearestThrust = function(Packet, Wheel)
+Importer.Functions.GetNearestThrust = function(Packet, Wheel)
 	local Thrust, Distance = nil, 9e9
 	for i, v in next, (Packet.Data.ChildData[Wheel.Parent] or Wheel.Parent:GetChildren()) do
 		if v.Name == "Thrust" then
@@ -155,7 +129,7 @@ Env.GetNearestThrust = function(Packet, Wheel)
 	return Thrust, Distance
 end
 
-Env.WheelDescendant = function(Wheels, BasePart)
+Importer.Functions.WheelDescendant = function(Wheels, BasePart)
 	for i,v in next, Wheels do
 		if BasePart:IsDescendantOf(i) then
 			return true
@@ -188,7 +162,9 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			RealWheels = {},
 			RelativeWheels = {},
 			RelativeThrust = {},
-			Connections = {},
+			Connections = {
+				Spoiler = {}
+			},
 			DescendantData = {},
 			ChildData = {},
 			SeatCF = nil,
@@ -407,6 +383,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 
 	self.Data.Destroy = function()
 		Update:Disconnect()
+		RunService.Heartbeat:Wait()
 		if self.Data.Chassis.Parent then
 			self.Data.Chassis:SetAttribute("Key", nil)
 			CollectionService:RemoveTag(self.Data.Chassis, "Overlayed")
@@ -554,20 +531,22 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
+	local MeshModel = self.Data.Model.Model
+
 	if self.Data.Chassis.Model:FindFirstChild("SteeringWheel") then
-		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
+		MeshModel.SteeringWheel.Orientation = Vector3.new(MeshModel.SteeringWheel.Orientation.X, MeshModel.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 	end
 
-	if not self.Data.ChildData[self.Data.Model.Model] then
-		self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
-		self.Data.Model.Model.ChildAdded:Connect(function(descendant)
-			self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
+	if not self.Data.ChildData[MeshModel] then
+		self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
+		MeshModel.ChildAdded:Connect(function(descendant)
+			self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
 		end)
-		self.Data.Model.Model.ChildRemoved:Connect(function(descendant)
-			self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
+		MeshModel.ChildRemoved:Connect(function(descendant)
+			self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
 		end)
 	end
-	for i,v in next, self.Data.ChildData[self.Data.Model.Model] do
+	for i,v in next, self.Data.ChildData[MeshModel] do
 		if v.Name == "Brakelights" then
 			v.Material = self.Data.Chassis.Model.Brakelights.Material
 		end
@@ -619,10 +598,10 @@ Importer.Data.ImportPacket.Update = function(self)
 	end
 end
 
-Env.MCreateNewSave = function(Data)
+Importer.Functions.CreateNewSave = function(Data)
 	local Packet = Importer.Data.ImportPacket:NewPacket(Data)
 
 	return Packet
 end
 
-return Importer.Module
+return Importer

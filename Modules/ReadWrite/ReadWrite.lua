@@ -1,9 +1,4 @@
-local HttpService = game:GetService("HttpService")
-local ReadWrite, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local ReadWrite = {
 	Data = {
 		GlobalUi = {
 			ConfigList = {},
@@ -12,24 +7,9 @@ local ReadWrite, Env = {
 		}
 	},
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(ReadWrite.Functions, LMeta)
-setmetatable(ReadWrite.Module.Functions, MMeta)
-
-Env.MSetupReadWrite = function()
+ReadWrite.Functions.SetupReadWrite = function()
     if not isfolder("./PayPal") then
         makefolder("./PayPal")
     end
@@ -41,7 +21,7 @@ Env.MSetupReadWrite = function()
     end
 end
 
-Env.MReadVehicles = function()
+ReadWrite.Functions.ReadVehicles = function()
 	local Vehicles = {}
 	for i,v in next, listfiles("./PayPal/Vehicles") do
 		v = string.gsub(v:gsub([[./PayPal]], "PayPal"), "/", [[\]])
@@ -55,7 +35,7 @@ Env.MReadVehicles = function()
 	return Vehicles
 end
 
-Env.MReadConfigs = function()
+ReadWrite.Functions.ReadConfigs = function()
     local Configs = {}
     for i, v in next, listfiles("./PayPal/Configs") do
         table.insert(Configs, HttpService:JSONDecode(readfile(v)))
@@ -63,7 +43,7 @@ Env.MReadConfigs = function()
     return Configs
 end
 
-Env.MWriteConfig = function(Config)
+ReadWrite.Functions.WriteConfig = function(Config)
 	writefile("./PayPal/Configs/" .. Config.Settings.Name .. Config.Data.Key .. ".json", HttpService:JSONEncode({
 		Name = Config.Settings.Name,
 		Data = Config.Settings.Data,
@@ -73,4 +53,4 @@ Env.MWriteConfig = function(Config)
 	}))
 end
 
-return ReadWrite.Module
+return ReadWrite

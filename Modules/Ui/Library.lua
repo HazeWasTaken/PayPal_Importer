@@ -1,36 +1,11 @@
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-
 local Mouse = Players.LocalPlayer:GetMouse()
 
-local Library, Env = {
-    Module = {
-        Functions = {},
-        Data = {}
-    },
+local Library = {
     Data = {},
     Functions = {}
-}, {}
-
-local LMeta = {
-    __index = function(self, index)
-        return Env[index]
-    end
 }
 
-local MMeta = {
-    __index = function(self, index)
-        return Env["M" .. index]
-    end
-}
-
-setmetatable(Library.Functions, LMeta)
-setmetatable(Library.Module.Functions, MMeta)
-
-Env.dragify = function(Frame) -- stole from v3rm :kek:
+Library.Functions.dragify = function(Frame) -- stole from v3rm :kek:
     local dragToggle = nil
     local dragSpeed = .25
     local dragInput = nil
@@ -84,7 +59,7 @@ Env.dragify = function(Frame) -- stole from v3rm :kek:
     )
 end
 
-Env.MCreateUi = function(Name)
+Library.Functions.CreateUi = function(Name)
     local Swift = Instance.new("ScreenGui")
     Swift.Name = "Swift"
     Swift.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -703,7 +678,6 @@ Env.MCreateUi = function(Name)
                             Callback = UpdateCallback or Callback
                             Button.Name = Data.Name
                             ButtonName.Text = Data.Name
-                            Callback = Callback
                         end
 
                         ButtonLibrary.Destroy = function()
@@ -1027,6 +1001,11 @@ Env.MCreateUi = function(Name)
                             Callback = UpdateCallback or Callback
                         end
 
+                        ToggleLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Toggle))
+                            Toggle:Destroy()
+                        end
+
                         return ToggleLibrary
                     end
 
@@ -1061,7 +1040,7 @@ Env.MCreateUi = function(Name)
                         DropdownName.TextSize = 11
                         DropdownName.RichText = true
                         DropdownName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                        DropdownName.Text = Data.Name .. " : " .. Data.Text
                         DropdownName.Font = Enum.Font.Gotham
                         DropdownName.TextXAlignment = Enum.TextXAlignment.Left
                         DropdownName.Parent = Dropdown
@@ -1171,6 +1150,13 @@ Env.MCreateUi = function(Name)
                         Dropdown.MouseButton1Down:Connect(function(x, y)
                             DropdownLibrary.Enabled = not DropdownLibrary.Enabled
                             DropdownLibrary.Tweening = not DropdownLibrary.Tweening
+
+                            if Data.UpdateData then
+                                local New_Data = Data.UpdateData()
+
+                                DropdownLibrary.Update(nil, {Options = New_Data})
+                            end
+
                             TweenService:Create(DropdownIcon, TweenInfo.new(.25), {
                                 Rotation = DropdownLibrary.Enabled and 0 or 90
                             }):Play()
@@ -1244,23 +1230,29 @@ Env.MCreateUi = function(Name)
                             ButtonIcon.Image = "rbxassetid://6764432293"
                             ButtonIcon.Parent = Button
 
+
                             local MouseEnter = Button.MouseEnter:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait()
-                                OptionData.Enter()
+                                if OptionData.Enter then
+                                    OptionData.Enter()
+                                end
                             end)
+
 
                             local MouseLeave = Button.MouseLeave:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
-                                OptionData.Leave()
+                                if OptionData.Leave then
+                                    OptionData.Leave()
+                                end
                             end)
 
                             local ButtonDown = Button.MouseButton1Down:Connect(function(x, y)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait(.126)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                Data.AltText = OptionData.Name
-                                DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                                Data.Text = OptionData.Name
+                                DropdownName.Text = Data.Name .. " : " .. Data.Text
                                 Callback(OptionData.Data, OptionData.Name)
                             end)
 
@@ -1286,14 +1278,20 @@ Env.MCreateUi = function(Name)
 
                         DropdownLibrary.Update = function(UpdateCallback, UpdateData)
                             Data.Name = UpdateData.Name or Data.Name
-                            Data.AltText = UpdateData.AltText or Data.AltText
-                            DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                            Data.Text = UpdateData.Text or Data.Text
+                            Data.UpdateData = UpdateData.UpdateData or Data.UpdateData
+                            DropdownName.Text = Data.Name .. " : " .. Data.Text
                             Dropdown.Name = Data.Name
                             if UpdateData.Options then
                                 DropdownLibrary.ClearOptions()
                                 DropdownLibrary.AddOptions(UpdateData.Options)
                             end
                             Callback = UpdateCallback or Callback
+                        end
+
+                        DropdownLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Dropdown))
+                            Dropdown:Destroy()
                         end
 
                         DropdownLibrary.AddOptions(Data.Options)
@@ -1412,6 +1410,11 @@ Env.MCreateUi = function(Name)
                             TextboxName.Text = UpdateData.Name or Data.Name
                             Textbox.Name = UpdateData.Name or Data.Name
                             Input.Text = UpdateData.Text or Data.Text
+                        end
+
+                        TextBoxLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Textbox))
+                            Textbox:Destroy()
                         end
 
                         return TextBoxLibrary
@@ -1555,6 +1558,21 @@ Env.MCreateUi = function(Name)
                             TweenService:Create(Slider, TweenInfo.new(.25), {Size = UDim2.new(0, 389, 0, 26)}):Play()
                             Bg.Visible = false
                         end)
+
+                        local SliderLibrary = {}
+
+                        SliderLibrary.Update = function(UpdateCallback, UpdateData)
+                            Callback = UpdateCallback or Callback
+                            Data.Name = UpdateData.Name or Data.Name
+                            Data.Current = UpdateData.Current or Data.Current
+                            Data.Min = UpdateData.Min or Data.Min
+                            Data.Max = UpdateData.Max or Data.Max
+                            SliderName.Text = Data.Name
+                            SliderValue.Text = tostring(Data.Current) .. "/" .. tostring(Data.Max)
+                            Slide.Size = UDim2.new((Data.Current - math.abs(Data.Min))/(Data.Max - math.abs(Data.Min)), 0, 0, 4)
+                        end
+
+                        return SliderLibrary
                     end
 
                     InputLibrary.CreateKeyBind = function(Callback, Data)
@@ -1565,7 +1583,7 @@ Env.MCreateUi = function(Name)
                         Textbox.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
                         Textbox.Parent = Section
                         table.insert(Inputs, Textbox)
-                        
+
                         local Input = Instance.new("TextBox")
                         Input.Name = "Input"
                         Input.Size = UDim2.new(0, 348, 0, 21)
@@ -1670,6 +1688,17 @@ Env.MCreateUi = function(Name)
                                 end
                             end
                         end)
+
+                        local KeyBindLibrary = {}
+
+                        KeyBindLibrary.Update = function(UpdateCallback, UpdateData)
+                            Data.Name = UpdateData.Name or Data.Name
+                            Callback = UpdateCallback or Callback
+                            Textbox.Name = Data.Name
+                            TextboxName.Text = Data.Name
+                        end
+
+                        return KeyBindLibrary
                     end
 
                     return InputLibrary
@@ -1834,4 +1863,4 @@ Env.MCreateUi = function(Name)
     return GuildLibrary
 end
 
-return Library.Module
+return Library

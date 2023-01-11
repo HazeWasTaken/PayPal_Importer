@@ -1,3 +1,16 @@
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local CoreGui = game:GetService("CoreGui")
+
+--main
+
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
@@ -15,7 +28,7 @@ local Loaded = {}
 
 import = function(dir)
     local Split = string.split(dir, "/")
-    local Data = Vehicle_Importer
+    local Data = PayPal_Importer
 
     Split[#Split] = string.split(Split[#Split], ".")[1]
 

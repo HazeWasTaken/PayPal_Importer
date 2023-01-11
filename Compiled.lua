@@ -1,13 +1,20 @@
-Vehicle_Importer = {Images = {
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local CoreGui = game:GetService("CoreGui")
+
+PayPal_Importer = {Images = {
 },
 Modules = {
 ImportChecks = {
 VehicleChecks = function()
-local VehicleChecks, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local VehicleChecks = {
 	Data = {
 		Checks = {
 			WheelFrontLeft = {
@@ -41,24 +48,9 @@ local VehicleChecks, Env = {
 		}
 	},
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(VehicleChecks.Functions, LMeta)
-setmetatable(VehicleChecks.Module.Functions, MMeta)
-
-Env.CheckTable = function(Output, Check, Model, Path)
+VehicleChecks.Functions.CheckTable = function(Output, Check, Model, Path)
 	for i, v in next, Check do
 		if Model:FindFirstChild(i) then
 			VehicleChecks.Functions.CheckTable(Output, v, Model:FindFirstChild(i), Path .."." .. i)
@@ -68,7 +60,7 @@ Env.CheckTable = function(Output, Check, Model, Path)
 	end
 end
 
-Env.MRunCheck = function(Data)
+VehicleChecks.Functions.RunCheck = function(Data)
 	local Success, Response = pcall(function()
 		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. Data)[1]
 	end)
@@ -88,42 +80,20 @@ Env.MRunCheck = function(Data)
 	return Output.String:len() > 0 and Output.String or "Model is valid", Output.String:len() > 0 and Vector2.new(0, 600) or Vector2.new(0, 900)
 end
 
-return VehicleChecks.Module
+return VehicleChecks
 end,
 },
 Importer = {
 Customization = function()
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
-local Customization, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local Customization = {
 	Data = {
         Spoiler = require(ReplicatedStorage.Game.Garage.StoreData.Spoiler),
         SpoilerCustomize = require(ReplicatedStorage.Game.Garage.Customize.Spoiler),
     },
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(Customization.Functions, LMeta)
-setmetatable(Customization.Module.Functions, MMeta)
-
-Env.GetSpoilerName = function(MeshId)
+Customization.Functions.GetSpoilerName = function(MeshId)
     for i,v in next, ReplicatedStorage.Resource.Spoiler:GetChildren() do
         if v.MeshId == MeshId then
             return v.Name
@@ -131,7 +101,7 @@ Env.GetSpoilerName = function(MeshId)
     end
 end
 
-Env.BodyColor = function(Packet, Item)
+Customization.Functions.BodyColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -144,7 +114,7 @@ Env.BodyColor = function(Packet, Item)
     end
 end
 
-Env.SecondBodyColor = function(Packet, Item)
+Customization.Functions.SecondBodyColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -157,7 +127,7 @@ Env.SecondBodyColor = function(Packet, Item)
     end
 end
 
-Env.SeatColor = function(Packet, Item)
+Customization.Functions.SeatColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -170,7 +140,7 @@ Env.SeatColor = function(Packet, Item)
     end
 end
 
-Env.HeadlightsColor = function(Packet, Item)
+Customization.Functions.HeadlightsColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -183,7 +153,7 @@ Env.HeadlightsColor = function(Packet, Item)
     end
 end
 
-Env.InteriorMainColor = function(Packet, Item)
+Customization.Functions.InteriorMainColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -196,7 +166,7 @@ Env.InteriorMainColor = function(Packet, Item)
     end
 end
 
-Env.InteriorDetailColor = function(Packet, Item)
+Customization.Functions.InteriorDetailColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -209,7 +179,7 @@ Env.InteriorDetailColor = function(Packet, Item)
     end
 end
 
-Env.WindowColor = function(Packet, Item)
+Customization.Functions.WindowColor = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -222,7 +192,7 @@ Env.WindowColor = function(Packet, Item)
     end
 end
 
-Env.WindowTint = function(Packet, Item)
+Customization.Functions.WindowTint = function(Packet, Item)
     if not Packet.Data.Model:FindFirstChild("Model") then
         return
     end
@@ -233,7 +203,7 @@ Env.WindowTint = function(Packet, Item)
     end
 end
 
-Env.SpoilerColor = function(Packet, Item)
+Customization.Functions.SpoilerColor = function(Packet, Item)
     local SpoilerPart = Packet.Data.Model:FindFirstChild("SpoilerPart")
     if SpoilerPart then
         Packet.Data.Model.SpoilerPart.Color = Item.Color
@@ -242,7 +212,7 @@ Env.SpoilerColor = function(Packet, Item)
     end
 end
 
-Env.Spoiler = function(Packet, Spoiler)
+Customization.Functions.Spoiler = function(Packet, Spoiler)
     local SpoilerName, SpoilerData = Customization.Functions.GetSpoilerName(Spoiler.MeshId)
     for i,v in next, Customization.Data.Spoiler.Items do
         if v.Name == SpoilerName then
@@ -257,47 +227,75 @@ Env.Spoiler = function(Packet, Spoiler)
     Customization.Data.SpoilerCustomize(SpoilerData, {
         Model = Packet.Data.Model
     })
-end
 
-Env.MConnectModel = function(Packet)
-    Packet.Data.Chassis.DescendantRemoving:Connect(function(RemovedDescendant)
-        if RemovedDescendant.Name == "SpoilerPart" then
-            RunService.Heartbeat:Wait()
-            local SpoilerPart = Packet.Data.Model:FindFirstChild("SpoilerPart")
-            if not Packet.Data.Chassis:FindFirstChild("SpoilerPart") and SpoilerPart then
-                SpoilerPart:Destroy()
-            end
+    Spoiler.Destroying:Connect(function()
+        RunService.Heartbeat:Wait()
+        local SpoilerPart = Packet.Data.Model:FindFirstChild("SpoilerPart")
+        if not Packet.Data.Chassis:FindFirstChild("SpoilerPart") and SpoilerPart then
+            SpoilerPart:Destroy()
         end
     end)
+end
+
+Customization.Functions.HyperChrome = function(Packet, Item)
+    if not Packet.Data.Model:FindFirstChild("Model") or not Item:IsA("Texture") then
+        return
+    end
+
+    local NewItem = Item:Clone()
+
+	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
+        if v.Name == Item.Parent.Name then
+            NewItem.Parent = v
+        end
+    end
+
+    local Connection = Item:GetPropertyChangedSignal("Color3"):Connect(function()
+        NewItem.Color3 = Item.Color3
+    end)
+
+    Item.Destroying:Connect(function()
+        Connection:Disconnect()
+        NewItem:Destroy()
+    end)
+end
+
+Customization.Functions.ConnectModel = function(Packet)
     Packet.Data.Chassis.DescendantAdded:Connect(function(descendant)
         if descendant.Name == "SpoilerPart" then
-            for i,v in next, Packet.Data.Connections do
+            for i,v in next, Packet.Data.Connections.Spoiler do
                 v:Disconnect()
-                Packet.Data.Connections[i] = nil
+                Packet.Data.Connections.Spoiler[i] = nil
             end
             Customization.Functions.Spoiler(Packet, descendant)
             Customization.Functions.SpoilerColor(Packet, descendant)
-            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Color"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, descendant:GetPropertyChangedSignal("Color"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, descendant)
             end))
-            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Material"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, descendant:GetPropertyChangedSignal("Material"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, descendant)
             end))
-            table.insert(Packet.Data.Connections, descendant:GetPropertyChangedSignal("Reflectance"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, descendant:GetPropertyChangedSignal("Reflectance"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, descendant)
             end))
         end
+        if string.find(descendant.Name:lower(), "hyperchrome") then
+            Customization.Functions.HyperChrome(Packet, descendant)
+        end
     end)
 	for i,v in next, Packet.Data.Chassis.Model:GetDescendants() do
+        if string.find(v.Name:lower(), "hyperchrome") then
+            Customization.Functions.HyperChrome(Packet, v)
+        end
         if v.Name == "SpoilerPart" then
             Customization.Functions.Spoiler(Packet, v)
-            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Color"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, v:GetPropertyChangedSignal("Color"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, v)
             end))
-            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Material"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, v:GetPropertyChangedSignal("Material"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, v)
             end))
-            table.insert(Packet.Data.Connections, v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+            table.insert(Packet.Data.Connections.Spoiler, v:GetPropertyChangedSignal("Reflectance"):Connect(function()
                 Customization.Functions.SpoilerColor(Packet, v)
             end))
         end
@@ -392,24 +390,13 @@ Env.MConnectModel = function(Packet)
     end
 end
 
-return Customization.Module
+return Customization
 end,
 Importer = function()
-local CollectionService = game:GetService("CollectionService")
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
 local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 local Customization = import("Modules/Importer/Customization.lua")
 
-local Importer, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local Importer = {
 	Data = {
 		AlexChassis = require(ReplicatedStorage.Module.AlexChassis),
         Vehicle = require(ReplicatedStorage.Game.Vehicle),
@@ -419,22 +406,7 @@ local Importer, Env = {
 	Functions = {
 		getDefaultVehicleModel = require(ReplicatedStorage.Game.getDefaultVehicleModel)
     }
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
-
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(Importer.Functions, LMeta)
-setmetatable(Importer.Module.Functions, MMeta)
 
 local UpdateSteppedUpValues = debug.getupvalues(Importer.Data.AlexChassis.UpdateStepped)
 
@@ -539,7 +511,7 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Env.GetNearestThrust = function(Packet, Wheel)
+Importer.Functions.GetNearestThrust = function(Packet, Wheel)
 	local Thrust, Distance = nil, 9e9
 	for i, v in next, (Packet.Data.ChildData[Wheel.Parent] or Wheel.Parent:GetChildren()) do
 		if v.Name == "Thrust" then
@@ -552,7 +524,7 @@ Env.GetNearestThrust = function(Packet, Wheel)
 	return Thrust, Distance
 end
 
-Env.WheelDescendant = function(Wheels, BasePart)
+Importer.Functions.WheelDescendant = function(Wheels, BasePart)
 	for i,v in next, Wheels do
 		if BasePart:IsDescendantOf(i) then
 			return true
@@ -585,7 +557,9 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			RealWheels = {},
 			RelativeWheels = {},
 			RelativeThrust = {},
-			Connections = {},
+			Connections = {
+				Spoiler = {}
+			},
 			DescendantData = {},
 			ChildData = {},
 			SeatCF = nil,
@@ -804,6 +778,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 
 	self.Data.Destroy = function()
 		Update:Disconnect()
+		RunService.Heartbeat:Wait()
 		if self.Data.Chassis.Parent then
 			self.Data.Chassis:SetAttribute("Key", nil)
 			CollectionService:RemoveTag(self.Data.Chassis, "Overlayed")
@@ -951,20 +926,22 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
+	local MeshModel = self.Data.Model.Model
+
 	if self.Data.Chassis.Model:FindFirstChild("SteeringWheel") then
-		self.Data.Model.Model.SteeringWheel.Orientation = Vector3.new(self.Data.Model.Model.SteeringWheel.Orientation.X, self.Data.Model.Model.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
+		MeshModel.SteeringWheel.Orientation = Vector3.new(MeshModel.SteeringWheel.Orientation.X, MeshModel.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 	end
 
-	if not self.Data.ChildData[self.Data.Model.Model] then
-		self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
-		self.Data.Model.Model.ChildAdded:Connect(function(descendant)
-			self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
+	if not self.Data.ChildData[MeshModel] then
+		self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
+		MeshModel.ChildAdded:Connect(function(descendant)
+			self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
 		end)
-		self.Data.Model.Model.ChildRemoved:Connect(function(descendant)
-			self.Data.ChildData[self.Data.Model.Model] = self.Data.Model.Model:GetChildren()
+		MeshModel.ChildRemoved:Connect(function(descendant)
+			self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
 		end)
 	end
-	for i,v in next, self.Data.ChildData[self.Data.Model.Model] do
+	for i,v in next, self.Data.ChildData[MeshModel] do
 		if v.Name == "Brakelights" then
 			v.Material = self.Data.Chassis.Model.Brakelights.Material
 		end
@@ -1016,82 +993,42 @@ Importer.Data.ImportPacket.Update = function(self)
 	end
 end
 
-Env.MCreateNewSave = function(Data)
+Importer.Functions.CreateNewSave = function(Data)
 	local Packet = Importer.Data.ImportPacket:NewPacket(Data)
 
 	return Packet
 end
 
-return Importer.Module
+return Importer
 end,
 },
 Initialize = {
 Initialize = function()
-local Initialize, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local Initialize = {
 	Data = {},
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
-
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(Initialize.Functions, LMeta)
-setmetatable(Initialize.Module.Functions, MMeta)
 
 for i, v in next, getgc(true) do
     if type(v) == "table" and rawget(v, "attemptEquipGarageItem") then
-        Env.MSelectItem = v.attemptEquipGarageItem
+        Initialize.Functions.SelectItem = v.attemptEquipGarageItem
     end
 end
 
-return Initialize.Module
+return Initialize
 end,
 },
 Packet = {
 Packet = function()
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Packet, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local Packet = {
 	Data = {
         Vehicle = require(ReplicatedStorage.Game.Vehicle),
         PrevData = {}
     },
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(Packet.Functions, LMeta)
-setmetatable(Packet.Module.Functions, MMeta)
-
-Env.ReadTable = function(Data, PacketData, Original, Dir, Count)
+Packet.Functions.ReadTable = function(Data, PacketData, Original, Dir, Count)
     for i, v in next, PacketData do
         local Type = typeof(v)
         if Type == "table" then
@@ -1125,7 +1062,7 @@ Env.ReadTable = function(Data, PacketData, Original, Dir, Count)
     end
 end
 
-Env.MGetPacketData = function()
+Packet.Functions.GetPacketData = function()
     local Data, VehiclePacket = {}, Packet.Data.Vehicle.GetLocalVehiclePacket() or {}
 
     Packet.Functions.ReadTable(Data, VehiclePacket, "", "Packet", 0)
@@ -1133,17 +1070,12 @@ Env.MGetPacketData = function()
     return Data
 end
 
-return Packet.Module
+return Packet
 end,
 },
 ReadWrite = {
 ReadWrite = function()
-local HttpService = game:GetService("HttpService")
-local ReadWrite, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local ReadWrite = {
 	Data = {
 		GlobalUi = {
 			ConfigList = {},
@@ -1152,24 +1084,9 @@ local ReadWrite, Env = {
 		}
 	},
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(ReadWrite.Functions, LMeta)
-setmetatable(ReadWrite.Module.Functions, MMeta)
-
-Env.MSetupReadWrite = function()
+ReadWrite.Functions.SetupReadWrite = function()
     if not isfolder("./PayPal") then
         makefolder("./PayPal")
     end
@@ -1181,7 +1098,7 @@ Env.MSetupReadWrite = function()
     end
 end
 
-Env.MReadVehicles = function()
+ReadWrite.Functions.ReadVehicles = function()
 	local Vehicles = {}
 	for i,v in next, listfiles("./PayPal/Vehicles") do
 		v = string.gsub(v:gsub([[./PayPal]], "PayPal"), "/", [[\]])
@@ -1195,7 +1112,7 @@ Env.MReadVehicles = function()
 	return Vehicles
 end
 
-Env.MReadConfigs = function()
+ReadWrite.Functions.ReadConfigs = function()
     local Configs = {}
     for i, v in next, listfiles("./PayPal/Configs") do
         table.insert(Configs, HttpService:JSONDecode(readfile(v)))
@@ -1203,7 +1120,7 @@ Env.MReadConfigs = function()
     return Configs
 end
 
-Env.MWriteConfig = function(Config)
+ReadWrite.Functions.WriteConfig = function(Config)
 	writefile("./PayPal/Configs/" .. Config.Settings.Name .. Config.Data.Key .. ".json", HttpService:JSONEncode({
 		Name = Config.Settings.Name,
 		Data = Config.Settings.Data,
@@ -1213,44 +1130,19 @@ Env.MWriteConfig = function(Config)
 	}))
 end
 
-return ReadWrite.Module
+return ReadWrite
 end,
 },
 Ui = {
 Library = function()
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-
 local Mouse = Players.LocalPlayer:GetMouse()
 
-local Library, Env = {
-    Module = {
-        Functions = {},
-        Data = {}
-    },
+local Library = {
     Data = {},
     Functions = {}
-}, {}
-
-local LMeta = {
-    __index = function(self, index)
-        return Env[index]
-    end
 }
 
-local MMeta = {
-    __index = function(self, index)
-        return Env["M" .. index]
-    end
-}
-
-setmetatable(Library.Functions, LMeta)
-setmetatable(Library.Module.Functions, MMeta)
-
-Env.dragify = function(Frame) -- stole from v3rm :kek:
+Library.Functions.dragify = function(Frame) -- stole from v3rm :kek:
     local dragToggle = nil
     local dragSpeed = .25
     local dragInput = nil
@@ -1304,7 +1196,7 @@ Env.dragify = function(Frame) -- stole from v3rm :kek:
     )
 end
 
-Env.MCreateUi = function(Name)
+Library.Functions.CreateUi = function(Name)
     local Swift = Instance.new("ScreenGui")
     Swift.Name = "Swift"
     Swift.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -1923,7 +1815,6 @@ Env.MCreateUi = function(Name)
                             Callback = UpdateCallback or Callback
                             Button.Name = Data.Name
                             ButtonName.Text = Data.Name
-                            Callback = Callback
                         end
 
                         ButtonLibrary.Destroy = function()
@@ -2247,6 +2138,11 @@ Env.MCreateUi = function(Name)
                             Callback = UpdateCallback or Callback
                         end
 
+                        ToggleLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Toggle))
+                            Toggle:Destroy()
+                        end
+
                         return ToggleLibrary
                     end
 
@@ -2281,7 +2177,7 @@ Env.MCreateUi = function(Name)
                         DropdownName.TextSize = 11
                         DropdownName.RichText = true
                         DropdownName.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                        DropdownName.Text = Data.Name .. " : " .. Data.Text
                         DropdownName.Font = Enum.Font.Gotham
                         DropdownName.TextXAlignment = Enum.TextXAlignment.Left
                         DropdownName.Parent = Dropdown
@@ -2391,6 +2287,13 @@ Env.MCreateUi = function(Name)
                         Dropdown.MouseButton1Down:Connect(function(x, y)
                             DropdownLibrary.Enabled = not DropdownLibrary.Enabled
                             DropdownLibrary.Tweening = not DropdownLibrary.Tweening
+
+                            if Data.UpdateData then
+                                local New_Data = Data.UpdateData()
+
+                                DropdownLibrary.Update(nil, {Options = New_Data})
+                            end
+
                             TweenService:Create(DropdownIcon, TweenInfo.new(.25), {
                                 Rotation = DropdownLibrary.Enabled and 0 or 90
                             }):Play()
@@ -2464,23 +2367,29 @@ Env.MCreateUi = function(Name)
                             ButtonIcon.Image = "rbxassetid://6764432293"
                             ButtonIcon.Parent = Button
 
+
                             local MouseEnter = Button.MouseEnter:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait()
-                                OptionData.Enter()
+                                if OptionData.Enter then
+                                    OptionData.Enter()
+                                end
                             end)
+
 
                             local MouseLeave = Button.MouseLeave:Connect(function(x, y)
                                 TweenService:Create(ButtonIcon, TweenInfo.new(.25), {ImageColor3 = Color3.fromRGB(74, 74, 74)}):Play()
-                                OptionData.Leave()
+                                if OptionData.Leave then
+                                    OptionData.Leave()
+                                end
                             end)
 
                             local ButtonDown = Button.MouseButton1Down:Connect(function(x, y)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(31, 96, 166)}):Play()
                                 task.wait(.126)
                                 TweenService:Create(Button, TweenInfo.new(.125), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                                Data.AltText = OptionData.Name
-                                DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                                Data.Text = OptionData.Name
+                                DropdownName.Text = Data.Name .. " : " .. Data.Text
                                 Callback(OptionData.Data, OptionData.Name)
                             end)
 
@@ -2506,14 +2415,20 @@ Env.MCreateUi = function(Name)
 
                         DropdownLibrary.Update = function(UpdateCallback, UpdateData)
                             Data.Name = UpdateData.Name or Data.Name
-                            Data.AltText = UpdateData.AltText or Data.AltText
-                            DropdownName.Text = Data.Name .. " : " .. Data.AltText
+                            Data.Text = UpdateData.Text or Data.Text
+                            Data.UpdateData = UpdateData.UpdateData or Data.UpdateData
+                            DropdownName.Text = Data.Name .. " : " .. Data.Text
                             Dropdown.Name = Data.Name
                             if UpdateData.Options then
                                 DropdownLibrary.ClearOptions()
                                 DropdownLibrary.AddOptions(UpdateData.Options)
                             end
                             Callback = UpdateCallback or Callback
+                        end
+
+                        DropdownLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Dropdown))
+                            Dropdown:Destroy()
                         end
 
                         DropdownLibrary.AddOptions(Data.Options)
@@ -2632,6 +2547,11 @@ Env.MCreateUi = function(Name)
                             TextboxName.Text = UpdateData.Name or Data.Name
                             Textbox.Name = UpdateData.Name or Data.Name
                             Input.Text = UpdateData.Text or Data.Text
+                        end
+
+                        TextBoxLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Textbox))
+                            Textbox:Destroy()
                         end
 
                         return TextBoxLibrary
@@ -2775,6 +2695,21 @@ Env.MCreateUi = function(Name)
                             TweenService:Create(Slider, TweenInfo.new(.25), {Size = UDim2.new(0, 389, 0, 26)}):Play()
                             Bg.Visible = false
                         end)
+
+                        local SliderLibrary = {}
+
+                        SliderLibrary.Update = function(UpdateCallback, UpdateData)
+                            Callback = UpdateCallback or Callback
+                            Data.Name = UpdateData.Name or Data.Name
+                            Data.Current = UpdateData.Current or Data.Current
+                            Data.Min = UpdateData.Min or Data.Min
+                            Data.Max = UpdateData.Max or Data.Max
+                            SliderName.Text = Data.Name
+                            SliderValue.Text = tostring(Data.Current) .. "/" .. tostring(Data.Max)
+                            Slide.Size = UDim2.new((Data.Current - math.abs(Data.Min))/(Data.Max - math.abs(Data.Min)), 0, 0, 4)
+                        end
+
+                        return SliderLibrary
                     end
 
                     InputLibrary.CreateKeyBind = function(Callback, Data)
@@ -2785,7 +2720,7 @@ Env.MCreateUi = function(Name)
                         Textbox.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
                         Textbox.Parent = Section
                         table.insert(Inputs, Textbox)
-                        
+
                         local Input = Instance.new("TextBox")
                         Input.Name = "Input"
                         Input.Size = UDim2.new(0, 348, 0, 21)
@@ -2890,6 +2825,17 @@ Env.MCreateUi = function(Name)
                                 end
                             end
                         end)
+
+                        local KeyBindLibrary = {}
+
+                        KeyBindLibrary.Update = function(UpdateCallback, UpdateData)
+                            Data.Name = UpdateData.Name or Data.Name
+                            Callback = UpdateCallback or Callback
+                            Textbox.Name = Data.Name
+                            TextboxName.Text = Data.Name
+                        end
+
+                        return KeyBindLibrary
                     end
 
                     return InputLibrary
@@ -3054,27 +3000,19 @@ Env.MCreateUi = function(Name)
     return GuildLibrary
 end
 
-return Library.Module
+return Library
 end,
 },
 },
 Ui = {
 Create = function()
-local MarketplaceService = game:GetService("MarketplaceService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 local Library = import("Modules/Ui/Library.lua")
 local VehicleChecks = import("Modules/ImportChecks/VehicleChecks.lua")
 local ReadWrite = import("Modules/ReadWrite/ReadWrite.lua")
 local Importer = import("Modules/Importer/Importer.lua")
 local Packet = import("Modules/Packet/Packet.lua")
 
-local CreateUi, Env = {
-	Module = {
-		Functions = {},
-		Data = {}
-	},
+local CreateUi = {
 	Data = {
 		GlobalUi = {
 			ConfigList = {},
@@ -3084,38 +3022,23 @@ local CreateUi, Env = {
 		}
 	},
 	Functions = {}
-}, {}
-
-local LMeta = {
-	__index = function(self, index)
-		return Env[index]
-	end
 }
 
-local MMeta = {
-	__index = function(self, index)
-		return Env["M" .. index]
-	end
-}
-
-setmetatable(CreateUi.Functions, LMeta)
-setmetatable(CreateUi.Module.Functions, MMeta)
-
-Env.ResetSelector = function()
+CreateUi.Functions.ResetSelector = function()
 	CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = ""})
-	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", AltText = ""})
+	CreateUi.Data.GlobalUi.Settings.Models.Update(function() end, {Name = "Base Chassis", Text = ""})
 	CreateUi.Data.GlobalUi.Settings.Height.Update(function() end, {Text = "0"})
 	CreateUi.Data.GlobalUi.Settings.SimulateWheels.Update(function() end, {State = false})
 	CreateUi.Data.GlobalUi.Packets.Dropdown.ClearOptions()
-	CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function() end, {Text = "Packet", AltText = ""})
-	Env.GetConfig = function()
+	CreateUi.Data.GlobalUi.Packets.Dropdown.Update(function() end, {Name = "Packet", Text = ""})
+	CreateUi.Functions.GetConfig = function()
 		return
 	end
 	CreateUi.Data.GlobalUi.Packets.NewValueTextBox.Update(function() end, {Text = ""})
 	CreateUi.Data.GlobalUi.Manage.Init.Update(function() end,{Name = "Initialize"})
 end
 
-Env.CreateInitConfigButton = function(Section)-- Selected Config Button
+CreateUi.Functions.CreateInitConfigButton = function(Section)-- Selected Config Button
 	local Button = Section.CreateButton(function() end, {Name = "Initialize"})
 
 	CreateUi.Data.GlobalUi.Manage.Init = Button
@@ -3123,7 +3046,7 @@ Env.CreateInitConfigButton = function(Section)-- Selected Config Button
 	return Button
 end
 
-Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
+CreateUi.Functions.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	local Section = Channel.CreateSection("Manage Config")
 
 	CreateUi.Functions.CreateInitConfigButton(Section)
@@ -3131,7 +3054,7 @@ Env.CreateManageConfigSection = function(Channel) -- Manage Config Section
 	return Section
 end
 
-Env.CreateNewPacketValue = function(Section)
+CreateUi.Functions.CreateNewPacketValue = function(Section)
 	local TextBox = Section.CreateTextBox(function(Text) end, {Name = "New Packet Value", Text = ""})
 
 	CreateUi.Data.GlobalUi.Packets.NewValueTextBox = TextBox
@@ -3139,7 +3062,7 @@ Env.CreateNewPacketValue = function(Section)
 	return TextBox
 end
 
-Env.CreateSelectedPacketType = function(Section) -- Config Packet Type Label
+CreateUi.Functions.CreateSelectedPacketType = function(Section) -- Config Packet Type Label
 	local Lable = Section.CreateLabel({
 		Name = "Selected Packet Type",
 		Text = ""
@@ -3150,15 +3073,15 @@ Env.CreateSelectedPacketType = function(Section) -- Config Packet Type Label
 	return Lable
 end
 
-Env.CreatePacketListDropDown = function(Section) -- Config Packet Dropdown
-	local Dropdown = Section.CreateDropdown(function() end, {Name = "Packet", AltText = "", Options = {}})
+CreateUi.Functions.CreatePacketListDropDown = function(Section) -- Config Packet Dropdown
+	local Dropdown = Section.CreateDropdown(function() end, {Name = "Packet", Text = "", Options = {}})
 
 	CreateUi.Data.GlobalUi.Packets.Dropdown = Dropdown
 
 	return Dropdown
 end
 
-Env.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
+CreateUi.Functions.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
 	local Section = Channel.CreateSection("Config Packets")
 
 	CreateUi.Functions.CreatePacketListDropDown(Section)
@@ -3168,7 +3091,7 @@ Env.CreateConfigPacketsSection = function(Channel) -- Config Packets Section
 	return Section
 end
 
-Env.CreateWheelSimulationToggle = function(Section)
+CreateUi.Functions.CreateWheelSimulationToggle = function(Section)
 	local Toggle = Section.CreateToggle(function() end, {Name = "Simulate Wheels ", State = false})
 
 	CreateUi.Data.GlobalUi.Settings.SimulateWheels = Toggle
@@ -3176,7 +3099,7 @@ Env.CreateWheelSimulationToggle = function(Section)
 	return Toggle
 end
 
-Env.CreateModelHeightTextBox = function(Section)
+CreateUi.Functions.CreateModelHeightTextBox = function(Section)
 	local TextBox = Section.CreateTextBox(function() end, {Name = "Height ", Text = "0",NumOnly = true})
 
 	CreateUi.Data.GlobalUi.Settings.Height = TextBox
@@ -3184,17 +3107,15 @@ Env.CreateModelHeightTextBox = function(Section)
 	return TextBox
 end
 
-Env.CreateSelectModelDropdown = function(Section) -- Selected Model
-	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Base Chassis", AltText = "", Options = {}}), {}
-
-	AddVehicle = function(Vehicle)
+CreateUi.Functions.CreateSelectModelDropdown = function(Section) -- Selected Model
+	local AddVehicle = function(Data, Vehicle)
 		local Seat = Vehicle:FindFirstChild("Seat")
 		local BoundingBox = Vehicle:FindFirstChild("BoundingBox")
 		local PlayerName = Seat and Seat:FindFirstChild("PlayerName") and Seat.PlayerName.Value or ""
 		if BoundingBox then
 			BoundingBox.Transparency = 1
 		end
-		Dropdown.AddOption({
+		table.insert(Data, {
 			Name = Vehicle.Name .. (PlayerName ~= "" and " : ".. PlayerName or ""),
 			Data = Vehicle,
 			Enter = function()
@@ -3210,30 +3131,23 @@ Env.CreateSelectModelDropdown = function(Section) -- Selected Model
 		})
 	end
 
-	local calls = 0
 
-	ReConstruct = function()
-		if Dropdown.Enabled then
-			Dropdown:ClearOptions()
+	local Dropdown, Connections, AddVehicle, ReConstruct = Section.CreateDropdown(function() end, {Name = "Base Chassis", Text = "", Options = {}, UpdateData = function()
+		local Data = {}
 
-			for i,v in next, Workspace.Vehicles:GetChildren() do
-				AddVehicle(v)
-			end
+		for i,v in next, Workspace.Vehicles:GetChildren() do
+			AddVehicle(Data, v)
 		end
 
-		task.wait(1)
-		ReConstruct()
-	end
-	coroutine.wrap(function()
-		ReConstruct()
-	end)()
+		return Data
+	end}), {}
 
 	CreateUi.Data.GlobalUi.Settings.Models = Dropdown
 
 	return Dropdown
 end
 
-Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
+CreateUi.Functions.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 	local Section = Channel.CreateSection("Config Settings")
 
 	CreateUi.Functions.CreateSelectModelDropdown(Section)
@@ -3243,7 +3157,7 @@ Env.CreateConfigSettingsSection = function(Channel) -- Config Settings Section
 	return Section
 end
 
-Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
+CreateUi.Functions.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	Packet.Data.Button = CreateUi.Data.GlobalUi.ConfigListSection.CreateButton(function()
 		CreateUi.Data.GlobalUi.ConfigList.Name.Update({Name = "Selected Config", Text = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 		CreateUi.Data.GlobalUi.Settings.Models.Update(function(Model)
@@ -3263,7 +3177,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 					Callback = function() end
 				}
 			})
-		end, {Name = "Base Chassis", AltText = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
+		end, {Name = "Base Chassis", Text = Packet.Settings.Model and Packet.Settings.Model.Name or ""})
 		CreateUi.Data.GlobalUi.Settings.Height.Update(function(Height)
 			Packet:UpdateHeight(Height)
 		end, {Text = Packet.Settings.Height})
@@ -3289,7 +3203,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 				Packet:NewPacketValue(Data, Text)
 			end, {})
 		end, {})
-		Env.GetConfig = function()
+		CreateUi.Functions.GetConfig = function()
 			return Packet
 		end
 		CreateUi.Data.GlobalUi.Manage.Init.Update(function()
@@ -3306,7 +3220,7 @@ Env.CreateConfigListElement = function(Category, Packet) -- Config List Element
 	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
 end
 
-Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
+CreateUi.Functions.CreateSelectedConfigName = function(Section) -- Selected Config Label
 	local Label = Section.CreateLabel({Name = "Selected Config", Text = ""})
 
 	CreateUi.Data.GlobalUi.ConfigList.Name = Label
@@ -3314,7 +3228,7 @@ Env.CreateSelectedConfigName = function(Section) -- Selected Config Label
 	return Label
 end
 
-Env.CreateConfigListSection = function(Channel) -- Config List Section
+CreateUi.Functions.CreateConfigListSection = function(Channel) -- Config List Section
 	local Section = Channel.CreateSection("Configs")
 
 	CreateUi.Functions.CreateSelectedConfigName(Section)
@@ -3324,7 +3238,7 @@ Env.CreateConfigListSection = function(Channel) -- Config List Section
 	return Section
 end
 
-Env.CreateModelLoad = function(Category, Section) -- Model Load
+CreateUi.Functions.CreateModelLoad = function(Category, Section) -- Model Load
 	local Check = function(Data)
 		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
 
@@ -3349,7 +3263,7 @@ Env.CreateModelLoad = function(Category, Section) -- Model Load
 			}
 		})
 	end
-	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", AltText = "", Options = {}}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
+	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", Text = "", Options = {}}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
 
 	if getcustomasset then
 		coroutine.wrap(function()
@@ -3380,7 +3294,7 @@ Env.CreateModelLoad = function(Category, Section) -- Model Load
 	return Dropdown
 end
 
-Env.CreateNewConfigSection = function(Category, Channel) -- New Config Section
+CreateUi.Functions.CreateNewConfigSection = function(Category, Channel) -- New Config Section
 	local Section = Channel.CreateSection("New Config")
 
 	CreateUi.Functions.CreateModelLoad(Category, Section)
@@ -3388,7 +3302,7 @@ Env.CreateNewConfigSection = function(Category, Channel) -- New Config Section
 	return Section
 end
 
-Env.CreateImportChannel = function(Category) -- Importer Channel
+CreateUi.Functions.CreateImportChannel = function(Category) -- Importer Channel
 	local Channel = Category.CreateChannel("Importer")
 
 	CreateUi.Functions.CreateNewConfigSection(Category, Channel)
@@ -3400,7 +3314,7 @@ Env.CreateImportChannel = function(Category) -- Importer Channel
 	return Channel
 end
 
-Env.CreateImportCategory = function(Guild) -- Importer Category
+CreateUi.Functions.CreateImportCategory = function(Guild) -- Importer Category
 	local Category = Guild.CreateCategory("Importer")
 
 	CreateUi.Functions.CreateImportChannel(Category)
@@ -3408,7 +3322,7 @@ Env.CreateImportCategory = function(Guild) -- Importer Category
 	return Category
 end
 
-Env.FindInPacket = function(Data, Index)
+CreateUi.Functions.FindInPacket = function(Data, Index)
 	for i, v in next, Data do
 		if v.Index == Index then
 			return true
@@ -3416,11 +3330,11 @@ Env.FindInPacket = function(Data, Index)
 	end
 end
 
-Env.GetConfig = function()
+CreateUi.Functions.GetConfig = function()
 	return
 end
 
-Env.ModiyPacket = function(Category, v)
+CreateUi.Functions.ModiyPacket = function(Category, v)
 	local Config = CreateUi.Functions.GetConfig()
 	local Notif = Category.CreateNotif(not Config and "No config selected" or "Model Update", Vector2.new(200, 300), not Config and "Please select a config" or v.Type == "Instance" and "Modifying this type is not supported" or "Would you like to modify:\n\n" .. v.Dir, {
 		{
@@ -3454,7 +3368,7 @@ Env.ModiyPacket = function(Category, v)
 	})
 end
 
-Env.UpdatePacket = function(Category, Section)
+CreateUi.Functions.UpdatePacket = function(Category, Section)
 	local Displays = {}
 	RunService.Heartbeat:Connect(function()
 		if not Section.Content.Visible then
@@ -3490,7 +3404,7 @@ Env.UpdatePacket = function(Category, Section)
 	end)
 end
 
-Env.CreatePacketSection = function(Category, Channel)
+CreateUi.Functions.CreatePacketSection = function(Category, Channel)
 	local Section = Channel.CreateSection("Packet")
 
 	CreateUi.Functions.UpdatePacket(Category, Section)
@@ -3498,7 +3412,7 @@ Env.CreatePacketSection = function(Category, Channel)
 	return Section
 end
 
-Env.CreatePacketChannel = function(Category) -- Packet Channel
+CreateUi.Functions.CreatePacketChannel = function(Category) -- Packet Channel
 	local Channel = Category.CreateChannel("Packet")
 
 	CreateUi.Functions.CreatePacketSection(Category, Channel)
@@ -3506,7 +3420,7 @@ Env.CreatePacketChannel = function(Category) -- Packet Channel
 	return Channel
 end
 
-Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
+CreateUi.Functions.CreateVehcileCategory = function(Guild) -- Vehicle Category
 	local Category = Guild.CreateCategory("Vehicle")
 
 	CreateUi.Functions.CreatePacketChannel(Category)
@@ -3514,7 +3428,7 @@ Env.CreateVehcileCategory = function(Guild) -- Vehicle Category
 	return Category
 end
 
-Env.CreateImporterGuild = function(Ui) -- Importer Guild
+CreateUi.Functions.CreateImporterGuild = function(Ui) -- Importer Guild
 	local Guild = Ui.CreateGuild("Importer", getcustomasset and isfile("jailbreak.png") and getcustomasset("jailbreak.png") or "", getcustomasset and isfile("badimo.webm") and getcustomasset("badimo.webm") or "")
 
 	CreateUi.Functions.CreateImportCategory(Guild)
@@ -3523,7 +3437,7 @@ Env.CreateImporterGuild = function(Ui) -- Importer Guild
 	return Guild
 end
 
-Env.MCreateUi = function()
+CreateUi.Functions.CreateUi = function()
 	local Ui = Library.Functions.CreateUi("Importer") -- Importer Ui
 
 	CreateUi.Functions.CreateImporterGuild(Ui)
@@ -3531,11 +3445,13 @@ Env.MCreateUi = function()
 	return Ui
 end
 
-return CreateUi.Module
+return CreateUi
 
 end,
 },
 }
+
+
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
@@ -3553,7 +3469,7 @@ local Loaded = {}
 
 import = function(dir)
     local Split = string.split(dir, "/")
-    local Data = Vehicle_Importer
+    local Data = PayPal_Importer
 
     Split[#Split] = string.split(Split[#Split], ".")[1]
 
