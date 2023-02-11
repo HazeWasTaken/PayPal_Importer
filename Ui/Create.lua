@@ -209,7 +209,7 @@ CreateUi.Functions.CreateConfigListElement = function(Category, Packet) -- Confi
 			})
 			CreateUi.Functions.ResetSelector()
 		end,{Name = "Initialize"})
-	end, {Name = Packet.Settings.Name .. " | " ..Packet.Data.Key})
+	end, {Name = Packet.Settings.Name .. " | " .. Packet.Data.Key})
 end
 
 CreateUi.Functions.CreateSelectedConfigName = function(Section) -- Selected Config Label
@@ -239,8 +239,9 @@ CreateUi.Functions.CreateModelLoad = function(Category, Section) -- Model Load
 				Text = "Continue",
 				Close = true,
 				Callback = function()
+					table.foreach(string.split(Data, [[\]]), print)
 					local Packet = Importer.Functions.CreateNewSave({
-						Name = getcustomasset and string.gsub(string.split(Data, [[\]])[3], ".rbxm", "") or MarketplaceService:GetProductInfo(Data).Name,
+						Name = getcustomasset and string.gsub(string.split(Data, [[\]])[4], ".rbxm", "") or MarketplaceService:GetProductInfo(Data).Name,
 						Data = Data,
 						Height = 0,
 						SimulateWheels = false
@@ -255,19 +256,7 @@ CreateUi.Functions.CreateModelLoad = function(Category, Section) -- Model Load
 			}
 		})
 	end
-	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", Text = "", Options = {}}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
-
-	if getcustomasset then
-		coroutine.wrap(function()
-			while true do
-				Dropdown:ClearOptions()
-				for i, v in next, ReadWrite.Functions.ReadVehicles() do
-					Dropdown.AddOption(v)
-				end
-				task.wait(5)
-			end
-		end)()
-	end
+	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", Text = "", Options = {}, UpdateData = ReadWrite.Functions.ReadVehicles}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
 
 	coroutine.wrap(function()
 		while true do

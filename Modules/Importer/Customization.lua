@@ -20,6 +20,7 @@ Customization.Functions.BodyColor = function(Packet, Item)
     end
     for i, v in next, Packet.Data.Model.Model:GetDescendants() do
         if v.Name == "Body" then
+            v.TextureID = Item.TextureID
             v.Color = Item.Color
             v.Material = Item.Material
             v.Reflectance = Item.Reflectance
@@ -33,6 +34,7 @@ Customization.Functions.SecondBodyColor = function(Packet, Item)
     end
 	for i,v in next, Packet.Data.Model.Model:GetDescendants() do
         if v.Name == "SecondBody" then
+            v.TextureID = Item.TextureID
             v.Color = Item.Color
             v.Material = Item.Material
             v.Reflectance = Item.Reflectance
@@ -287,6 +289,9 @@ Customization.Functions.ConnectModel = function(Packet)
             v:GetPropertyChangedSignal("Reflectance"):Connect(function()
                 Customization.Functions.SecondBodyColor(Packet, v)
             end)
+            v:GetPropertyChangedSignal("TextureID"):Connect(function()
+                Customization.Functions.SecondBodyColor(Packet, v)
+            end)
         end
         if v.Name == "Body" then
             Customization.Functions.BodyColor(Packet, v)
@@ -297,6 +302,9 @@ Customization.Functions.ConnectModel = function(Packet)
                 Customization.Functions.BodyColor(Packet, v)
             end)
             v:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                Customization.Functions.BodyColor(Packet, v)
+            end)
+            v:GetPropertyChangedSignal("TextureID"):Connect(function()
                 Customization.Functions.BodyColor(Packet, v)
             end)
         end

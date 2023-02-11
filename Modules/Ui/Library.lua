@@ -210,7 +210,7 @@ Library.Functions.CreateUi = function(Name)
         TabSelection.BorderSizePixel = 0
         TabSelection.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         TabSelection.CanvasSize = UDim2.new(0, 0, 0, 0)
-        TabSelection.ScrollBarThickness = 3
+        TabSelection.ScrollBarThickness = 0
         TabSelection.Parent = Frame
         table.insert(GuildLibrary.Guilds, TabSelection)
         table.insert(Guild, TabSelection)
@@ -219,6 +219,10 @@ Library.Functions.CreateUi = function(Name)
         UIListLayout3.SortOrder = Enum.SortOrder.LayoutOrder
         UIListLayout3.Padding = UDim.new(0, 3)
         UIListLayout3.Parent = TabSelection
+
+        RunService.Heartbeat:Connect(function()
+            TabSelection.CanvasSize = UDim2.new(0, 0, 0, UIListLayout3.AbsoluteContentSize.Y + 4)
+        end)
 
         local ServerBanner = Instance.new("Frame")
         ServerBanner.Name = "ServerBanner"
@@ -249,6 +253,7 @@ Library.Functions.CreateUi = function(Name)
 
         Server.MouseButton1Down:Connect(function(x, y)
             for i,v in next, GuildLibrary.Guilds do
+                TabSelection.ScrollBarThickness = table.find(Guild, v) and 3 or 0
                 TweenService:Create(
                     v,
                     TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.InOut),

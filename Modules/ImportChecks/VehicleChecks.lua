@@ -1,34 +1,43 @@
 local VehicleChecks = {
 	Data = {
 		Checks = {
-			WheelFrontLeft = {
-				Wheel = {},
-				Rim = {}
-			},
-			WheelFrontRight = {
-				Wheel = {},
-				Rim = {}
-			},
-			WheelBackLeft = {
-				Wheel = {},
-				Rim = {}
-			},
-			WheelBackRight = {
-				Wheel = {},
-				Rim = {},
-			},
-			Model = {
-				SteeringWheel = {},
-				Nitrous = {
-					Smoke = {},
-					Fire = {}
+			Cars = {
+				WheelFrontLeft = {
+					Wheel = {},
+					Rim = {}
 				},
+				WheelFrontRight = {
+					Wheel = {},
+					Rim = {}
+				},
+				WheelBackLeft = {
+					Wheel = {},
+					Rim = {}
+				},
+				WheelBackRight = {
+					Wheel = {},
+					Rim = {},
+				},
+				Model = {
+					SteeringWheel = {},
+					Nitrous = {
+						Smoke = {},
+						Fire = {}
+					},
+				},
+				Camera = {},
+				InsideCamera = {},
+				Engine = {},
+				Seat = {},
+				Steer = {}
 			},
-			Camera = {},
-			InsideCamera = {},
-			Engine = {},
-			Seat = {},
-			Steer = {}
+			Helis = {
+				Preset = {},
+				Camera = {},
+				-- InsideCamera = {},
+				Engine = {},
+				Seat = {}
+			}
 		}
 	},
 	Functions = {}
@@ -49,6 +58,8 @@ VehicleChecks.Functions.RunCheck = function(Data)
 		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. Data)[1]
 	end)
 
+	local Type = string.split(Data, "\\")[3]
+
 	if not Success or not Response or typeof(Response) ~= "Instance" then
 		return (Response or "Failed to load model"), Vector2.new(0, 600)
 	end
@@ -57,7 +68,7 @@ VehicleChecks.Functions.RunCheck = function(Data)
 		String = ""
 	}
 
-	VehicleChecks.Functions.CheckTable(Output, VehicleChecks.Data.Checks, Response, "Model")
+	VehicleChecks.Functions.CheckTable(Output, VehicleChecks.Data.Checks[Type], Response, "Model")
 
     Response:Destroy()
 
