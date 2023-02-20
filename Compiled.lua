@@ -18,6 +18,20 @@ local VehicleChecks = {
 	Data = {
 		Checks = {
 			Cars = {
+				Preset = {
+					WheelFrontLeft = {
+						Wheel = {},
+					},
+					WheelFrontRight = {
+						Wheel = {},
+					},
+					WheelBackLeft = {
+						Wheel = {},
+					},
+					WheelBackRight = {
+						Wheel = {},
+					},
+				},
 				WheelFrontLeft = {
 					Wheel = {},
 					Rim = {}
@@ -704,6 +718,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			v.Rim:Destroy()
 			v.Wheel.Anchored = true
 			v.Parent = ReplicatedStorageClone.Preset
+			v.Transparency = 1
 		end
 	end
 	local NumberValue = Instance.new("NumberValue", ReplicatedStorageClone)

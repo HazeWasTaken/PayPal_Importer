@@ -290,6 +290,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			v.Rim:Destroy()
 			v.Wheel.Anchored = true
 			v.Parent = ReplicatedStorageClone.Preset
+			v.Transparency = 1
 		end
 	end
 	local NumberValue = Instance.new("NumberValue", ReplicatedStorageClone)
