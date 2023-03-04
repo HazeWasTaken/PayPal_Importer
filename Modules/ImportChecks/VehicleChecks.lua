@@ -2,6 +2,7 @@ local VehicleChecks = {
 	Data = {
 		Checks = {
 			Cars = {
+				Preset = {},
 				WheelFrontLeft = {
 					Wheel = {},
 					Rim = {}
@@ -34,7 +35,6 @@ local VehicleChecks = {
 			Helis = {
 				Preset = {},
 				Camera = {},
-				-- InsideCamera = {},
 				Engine = {},
 				Seat = {}
 			}

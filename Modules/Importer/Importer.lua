@@ -654,12 +654,12 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
-	if self.Data.Model.Preset:FindFirstChild("DoorRight") and self.Data.Chassis.Preset:FindFirstChild("DoorRight") then
+	-- if self.Data.Model.Preset:FindFirstChild("DoorRight") and self.Data.Chassis.Preset:FindFirstChild("DoorRight") then
 
-	end
-	if self.Data.Model.Preset:FindFirstChild("DoorLeft") and self.Data.Chassis.Preset:FindFirstChild("DoorLeft") then
+	-- end
+	-- if self.Data.Model.Preset:FindFirstChild("DoorLeft") and self.Data.Chassis.Preset:FindFirstChild("DoorLeft") then
 
-	end
+	-- end
 
 	if Packet and Packet.Model == self.Data.Chassis then
 		for i, v in next, self.VehiclePackets do

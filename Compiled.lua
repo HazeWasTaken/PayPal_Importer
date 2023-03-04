@@ -882,7 +882,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 		end
 	end
 
-	Customization.Functions.ConnectModel(self)
+	-- Customization.Functions.ConnectModel(self)
 
 	self.Data.Model.Parent = Workspace
 
