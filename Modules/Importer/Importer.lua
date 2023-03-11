@@ -116,28 +116,6 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Importer.Functions.GetNearestThrust = function(Packet, Wheel)
-	local Thrust, Distance = nil, 9e9
-	for i, v in next, (Wheel:GetChildren()) do
-		if v.Name == "Thrust" then
-			local Magnitude = math.abs((Wheel.Wheel.Position - v.Position).Magnitude)
-			if Distance > Magnitude then
-				Thrust, Distance = v, Magnitude
-			end
-		end
-	end
-	print(Thrust, Distance)
-	return Thrust, Distance
-end
-
-Importer.Functions.WheelDescendant = function(Wheels, BasePart)
-	for i,v in next, Wheels do
-		if BasePart:IsDescendantOf(i) then
-			return true
-		end
-	end
-end
-
 Importer.Data.ImportPacket.NewPacket = function(self, Data)
 	if Data.Key and Importer.Data.Packets[Data.Key] then
 		return
@@ -209,6 +187,14 @@ Importer.Data.ImportPacket.UpdateModel = function(self, Model)
 	end
 	self.Settings.Model = Model
 	return "Model Updated", Vector2.new(0, 900)
+end
+
+Importer.Data.ImportPacket.WheelDescendant = function(Wheels, BasePart)
+	for i,v in next, Wheels do
+		if BasePart:IsDescendantOf(i) then
+			return true
+		end
+	end
 end
 
 Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
@@ -512,7 +498,7 @@ Importer.Data.ImportPacket.Update = function(self)
 	end
 
 	for i, v in next, self.Data.DescendantData[self.Data.Chassis] do
-		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not (self.Data.Type == "Cars" and Importer.Functions.WheelDescendant(self.Data.RealWheels, v)) then
+		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not (self.Data.Type == "Cars" and self.WheelDescendant(self.Data.RealWheels, v)) then
 			v.Transparency = 1
 		end
 	end
