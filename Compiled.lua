@@ -531,14 +531,6 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Importer.Functions.WheelDescendant = function(Wheels, BasePart)
-	for i,v in next, Wheels do
-		if BasePart:IsDescendantOf(i) then
-			return true
-		end
-	end
-end
-
 Importer.Data.ImportPacket.NewPacket = function(self, Data)
 	if Data.Key and Importer.Data.Packets[Data.Key] then
 		return
@@ -610,6 +602,14 @@ Importer.Data.ImportPacket.UpdateModel = function(self, Model)
 	end
 	self.Settings.Model = Model
 	return "Model Updated", Vector2.new(0, 900)
+end
+
+Importer.Data.ImportPacket.WheelDescendant = function(Wheels, BasePart)
+	for i,v in next, Wheels do
+		if BasePart:IsDescendantOf(i) then
+			return true
+		end
+	end
 end
 
 Importer.Data.ImportPacket.UpdateHeight = function(self, Height)
