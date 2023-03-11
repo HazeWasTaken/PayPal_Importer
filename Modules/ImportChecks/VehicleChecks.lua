@@ -2,22 +2,23 @@ local VehicleChecks = {
 	Data = {
 		Checks = {
 			Cars = {
-				Preset = {},
-				WheelFrontLeft = {
-					Wheel = {},
-					Rim = {}
-				},
-				WheelFrontRight = {
-					Wheel = {},
-					Rim = {}
-				},
-				WheelBackLeft = {
-					Wheel = {},
-					Rim = {}
-				},
-				WheelBackRight = {
-					Wheel = {},
-					Rim = {},
+				Preset = {
+					WheelFrontLeft = {
+						Wheel = {},
+						Rim = {}
+					},
+					WheelFrontRight = {
+						Wheel = {},
+						Rim = {}
+					},
+					WheelBackLeft = {
+						Wheel = {},
+						Rim = {}
+					},
+					WheelBackRight = {
+						Wheel = {},
+						Rim = {},
+					}
 				},
 				Model = {
 					SteeringWheel = {},
