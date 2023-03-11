@@ -78,7 +78,7 @@ CreateUi.Functions.CreateConfigPacketsSection = function(Channel) -- Config Pack
 
 	CreateUi.Functions.CreatePacketListDropDown(Section)
 	CreateUi.Functions.CreateSelectedPacketType(Section)
-	CreateUi.Functions.CreateNewPacketValue(Section)
+	-- CreateUi.Functions.CreateNewPacketValue(Section)
 
 	return Section
 end

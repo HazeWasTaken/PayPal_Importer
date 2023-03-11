@@ -18,6 +18,7 @@ local VehicleChecks = {
 	Data = {
 		Checks = {
 			Cars = {
+				Preset = {},
 				WheelFrontLeft = {
 					Wheel = {},
 					Rim = {}
@@ -50,7 +51,6 @@ local VehicleChecks = {
 			Helis = {
 				Preset = {},
 				Camera = {},
-				-- InsideCamera = {},
 				Engine = {},
 				Seat = {}
 			}
@@ -530,20 +530,7 @@ Workspace.CurrentCamera:GetPropertyChangedSignal("CameraSubject"):Connect(functi
 	end
 end)
 
-Importer.Functions.GetNearestThrust = function(Packet, Wheel)
-	local Thrust, Distance = nil, 9e9
-	for i, v in next, (Packet.Data.ChildData[Wheel.Parent] or Wheel.Parent:GetChildren()) do
-		if v.Name == "Thrust" then
-			local Magnitude = math.abs((Wheel.Wheel.Position - v.Position).Magnitude)
-			if Distance > Magnitude then
-				Thrust, Distance = v, Magnitude
-			end
-		end
-	end
-	return Thrust, Distance
-end
-
-Importer.Functions.WheelDescendant = function(Wheels, BasePart)
+Importer.Data.ImportPacket.WheelDescendant = function(Wheels, BasePart)
 	for i,v in next, Wheels do
 		if BasePart:IsDescendantOf(i) then
 			return true
@@ -557,8 +544,6 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 	end
 
 	local Type = string.split(Data.Data, "\\")[3]
-
-	table.foreach(string.split(Data.Data, "\\"), print)
 
 	local Packet = {
 		Settings = {
@@ -706,51 +691,52 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			v.Parent = ReplicatedStorageClone.Preset
 		end
 	end
+
 	local NumberValue = Instance.new("NumberValue", ReplicatedStorageClone)
 	NumberValue.Value = 0.7
 	NumberValue.Name = "InnerWheelPct"
 	ReplicatedStorageClone.Parent = ReplicatedStorage.Resource.Vehicles
 
 	if self.Data.Type == "Cars" then
-		self.Data.WheelSize.Wheel = self.Data.Chassis.WheelFrontLeft.Wheel.Size
-		self.Data.WheelSize.Rim = self.Data.Chassis.WheelFrontLeft.Rim.Size
+		self.Data.WheelSize.Wheel = self.Data.Chassis.Preset.WheelFrontLeft.Wheel.Size
+		self.Data.WheelSize.Rim = self.Data.Chassis.Preset.WheelFrontLeft.Rim.Size
 
-		local WheelDiff = self.Data.Model.WheelFrontLeft.Wheel.Position - self.Data.Model.WheelBackRight.Wheel.Position
-		self.Data.Model.PrimaryPart.Position = WheelDiff.Unit * (WheelDiff.Magnitude/2) + self.Data.Model.WheelBackRight.Wheel.Position
+		local WheelDiff = self.Data.Model.Preset.WheelFrontLeft.Wheel.Position - self.Data.Model.Preset.WheelBackRight.Wheel.Position
+		self.Data.Model.PrimaryPart.Position = WheelDiff.Unit * (WheelDiff.Magnitude/2) + self.Data.Model.Preset.WheelBackRight.Wheel.Position
 
 		local CreateRim = function(v)
-			local NewRim = self.Data.Chassis[v.Name].Rim:Clone()
+			local NewRim = self.Data.Chassis.Preset[v.Name].Rim:Clone()
 			NewRim.Size = Vector3.new(v.Wheel.Size.X, v.Rim.Size.Y, v.Rim.Size.Z)
-			NewRim.CFrame = v.Wheel.CFrame:ToWorldSpace(self.Data.Chassis[v.Name].Wheel.CFrame:ToObjectSpace(self.Data.Chassis[v.Name].Rim.CFrame))
+			NewRim.CFrame = v.Wheel.CFrame:ToWorldSpace(self.Data.Chassis.Preset[v.Name].Wheel.CFrame:ToObjectSpace(self.Data.Chassis.Preset[v.Name].Rim.CFrame))
 			v.Rim:Destroy()
 			NewRim.Parent = v
 			self.Data.Wheels[v.Name .. "Rim"] = {
 				Size = NewRim.Size,
 				MeshPart = NewRim
 			}
-			self.Data.RealWheels[self.Data.Chassis[v.Name].Rim] = self.Data.Chassis[v.Name].Rim.Transparency
+			self.Data.RealWheels[self.Data.Chassis.Preset[v.Name].Rim] = self.Data.Chassis.Preset[v.Name].Rim.Transparency
 			table.insert(self.Data.Calculated, v.Rim)
 		end
 
 		local CreateWheel = function(v)
-			local NewWheel = self.Data.Chassis[v.Name].Wheel:Clone()
+			local NewWheel = self.Data.Chassis.Preset[v.Name].Wheel:Clone()
 			NewWheel.Size = v.Wheel.Size
-			NewWheel.CFrame = v.Rim.CFrame:ToWorldSpace(self.Data.Chassis[v.Name].Rim.CFrame:ToObjectSpace(self.Data.Chassis[v.Name].Wheel.CFrame))
+			NewWheel.CFrame = v.Rim.CFrame:ToWorldSpace(self.Data.Chassis.Preset[v.Name].Rim.CFrame:ToObjectSpace(self.Data.Chassis.Preset[v.Name].Wheel.CFrame))
 			v.Wheel:Destroy()
 			NewWheel.Parent = v
 			self.Data.Wheels[v.Name .. "Wheel"] = {
 				Size = NewWheel.Size,
 				MeshPart = NewWheel
 			}
-			self.Data.RealWheels[self.Data.Chassis[v.Name].Wheel] = self.Data.Chassis[v.Name].Wheel.Transparency
+			self.Data.RealWheels[self.Data.Chassis.Preset[v.Name].Wheel] = self.Data.Chassis.Preset[v.Name].Wheel.Transparency
 			self.Data.LargestWheelSize = NewWheel.Size.Y > self.Data.LargestWheelSize and NewWheel.Size.Y/2 or self.Data.LargestWheelSize
 			table.insert(self.Data.Calculated, v.Wheel)
 		end
 
 		local UpdateRim = function(v)
-			self.Data.Chassis[v.Name].Rim.Size = self.Data.Wheels[v.Name .. "Rim"].Size
-			self.Data.RealWheels[self.Data.Chassis[v.Name].Rim] = self.Data.Chassis[v.Name].Rim.Transparency
-			local NewRim = self.Data.Chassis[v.Name].Rim:Clone()
+			self.Data.Chassis.Preset[v.Name].Rim.Size = self.Data.Wheels[v.Name .. "Rim"].Size
+			self.Data.RealWheels[self.Data.Chassis.Preset[v.Name].Rim] = self.Data.Chassis.Preset[v.Name].Rim.Transparency
+			local NewRim = self.Data.Chassis.Preset[v.Name].Rim:Clone()
 			v.Rim:Destroy()
 			NewRim.CanCollide = false
 			for index, value in next, NewRim:GetChildren() do
@@ -763,7 +749,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			NewRim.Parent = v
 		end
 
-		for i, v in next, self.Data.Model:GetChildren() do
+		for i, v in next, self.Data.Model.Preset:GetChildren() do
 			if string.find(v.Name, "Wheel") and v:IsA("Model") then
 				CreateRim(v)
 				CreateWheel(v)
@@ -773,9 +759,9 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 					Wheel = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.Wheel.CFrame),
 				}
 
-				local Thrust, Connection = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
+				local Thrust, Connection = self.Data.Chassis.Preset[v.Name].Thrust
 				self.Data.RelativeThrust[Thrust] = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(Thrust.CFrame)
-				Connection = self.Data.Chassis[v.Name].DescendantAdded:Connect(function(descendant)
+				Connection = self.Data.Chassis.Preset[v.Name].DescendantAdded:Connect(function(descendant)
 					if not self.Data.Model.Parent then
 						return Connection:Disconnect()
 					end
@@ -788,6 +774,27 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			if v.Name == "Nitrous" then
 				v.Fire.Transparency = NumberSequence.new(1)
 				v.Smoke.Transparency = NumberSequence.new(1)
+				v.Fire:GetPropertyChangedSignal("Enabled"):Connect(function()
+					-- v.Fire.Enabled = self.Data.Chassis.Model.Nitrous.Fire.Enabled
+				end)
+				v.Smoke:GetPropertyChangedSignal("Enabled"):Connect(function()
+					-- v.Smoke.Enabled = self.Data.Chassis.Model.Nitrous.Smoke.Enabled
+				end)
+			end
+			if v.Name == "Headlights" then
+				v:GetPropertyChangedSignal("Material"):Connect(function()
+					-- v.Material = self.Data.Chassis.Model.Headlights.Material
+				end)
+			end
+			if v.Name == "Brakelights" then
+				v:GetPropertyChangedSignal("Material"):Connect(function()
+					-- v.Material = self.Data.Chassis.Model.Brakelights.Material
+				end)
+			end
+			if v.Name == "Headlights" then
+				v:GetPropertyChangedSignal("Material"):Connect(function()
+					-- v.Material = self.Data.Chassis.Model.Headlights.Material
+				end)
 			end
 		end
 
@@ -797,13 +804,13 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			if self.Data.Chassis.Parent then
 				self.Data.Chassis:SetAttribute("Key", nil)
 				CollectionService:RemoveTag(self.Data.Chassis, "Overlayed")
-				for i, v in next, self.Data.Model:GetChildren() do
+				for i, v in next, self.Data.Model.Preset:GetChildren() do
 					if string.find(v.Name, "Wheel") and v:IsA("Model") then
-						local Thrust = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
+						local Thrust = self.Data.Chassis.Preset[v.Name].Thrust
 						local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 						Thrust.Position = ThrustCF.Position
-						self.Data.Chassis[v.Name].Rim.Size = self.Data.WheelSize.Rim
-						self.Data.Chassis[v.Name].Wheel.Size = self.Data.WheelSize.Wheel
+						self.Data.Chassis.Preset[v.Name].Rim.Size = self.Data.WheelSize.Rim
+						self.Data.Chassis.Preset[v.Name].Wheel.Size = self.Data.WheelSize.Wheel
 					end
 				end
 				for i,v in next, self.Data.ChassisTransparency do
@@ -878,11 +885,15 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			v.Anchored = false
 			if v ~= self.Data.Model.PrimaryPart and not table.find(self.Data.Calculated, v) then
 				self.Data.LatchCFrames[v] = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.CFrame)
+				local Weld = Instance.new("Weld", v)
+				Weld.Part0 = self.Data.Model.PrimaryPart
+				Weld.Part1 = v
+				Weld.C1 = self.Data.LatchCFrames[v]
 			end
 		end
 	end
 
-	-- Customization.Functions.ConnectModel(self)
+	Customization.Functions.ConnectModel(self)
 
 	self.Data.Model.Parent = Workspace
 
@@ -906,6 +917,34 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 	return "Config initialized", Vector2.new(0, 900)
 end
 
+Importer.Data.ImportPacket.UpdateTransparency = function(self)
+	self.Data.DescendantData[self.Data.Chassis] = self.Data.Chassis:GetDescendants()
+	for i, v in next, self.Data.DescendantData[self.Data.Chassis] do
+		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not (self.Data.Type == "Cars" and self.WheelDescendant(self.Data.RealWheels, v)) then
+			v.Transparency = 1
+		end
+	end
+end
+
+Importer.Data.ImportPacket.UpdateACW = function(self)
+	self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
+	for i, v in next, self.Data.DescendantData[self.Data.Model] do
+		if v:IsA("BasePart") then
+			v.CanCollide = false
+			v.Anchored = false
+		end
+	end
+end
+
+Importer.Data.ImportPacket.UpdateWheelParts = function(self)
+	self.Data.ChildData[self.Data.Model.Preset] = {}
+	for i,v in next, self.Data.Model.Preset:GetChildren() do
+		if string.find(v.Name, "Wheel") and v:IsA("Model") then
+			table.insert(self.Data.ChildData[self.Data.Model.Preset], v)
+		end
+	end
+end
+
 Importer.Data.ImportPacket.Update = function(self)
 	local Packet = Importer.Data.Vehicle.GetLocalVehiclePacket()
 
@@ -914,147 +953,89 @@ Importer.Data.ImportPacket.Update = function(self)
 	self.Data.Model.PrimaryPart.CFrame = self.Data.Chassis.PrimaryPart.CFrame + Vector3.new(0, self.Settings.Height - (self.Data.Type == "Cars" and HasPlayer and not self.Settings.SimulateWheels and self.Data.LargestWheelSize or 0), 0)
 
 	if not self.Data.DescendantData[self.Data.Chassis] then
-		self.Data.DescendantData[self.Data.Chassis] = self.Data.Chassis:GetDescendants()
+		self:UpdateTransparency()
 		self.Data.Chassis.DescendantAdded:Connect(function(descendant)
-			self.Data.DescendantData[self.Data.Chassis] = self.Data.Chassis:GetDescendants()
+			self:UpdateTransparency()
 		end)
-		self.Data.Chassis.DescendantRemoving:Connect(function(descendant)
-			descendant:GetPropertyChangedSignal("Parent"):Wait()
-			self.Data.DescendantData[self.Data.Chassis] = self.Data.Chassis:GetDescendants()
-		end)
-	end
-
-	for i, v in next, self.Data.DescendantData[self.Data.Chassis] do
-		if (v:IsA("Decal") or v:IsA("BasePart") or v:IsA("TextLabel")) and not (self.Data.Type == "Cars" and Importer.Functions.WheelDescendant(self.Data.RealWheels, v)) then
-			v.Transparency = 1
-		end
 	end
 
 	if not self.Data.DescendantData[self.Data.Model] then
-		self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
+		self:UpdateACW()
 		self.Data.Model.DescendantAdded:Connect(function(descendant)
-			self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
-		end)
-		self.Data.Model.DescendantRemoving:Connect(function(descendant)
-			descendant:GetPropertyChangedSignal("Parent"):Wait()
-			self.Data.DescendantData[self.Data.Model] = self.Data.Model:GetDescendants()
+			self:UpdateACW()
 		end)
 	end
 
 	if not self.Data.ChildData[self.Data.Model] then
-		self.Data.ChildData[self.Data.Model] = self.Data.Model:GetChildren()
+		self:UpdateWheelParts()
 		self.Data.Model.ChildAdded:Connect(function(descendant)
-			self.Data.ChildData[self.Data.Model] = self.Data.Model:GetChildren()
+			self:UpdateWheelParts()
 		end)
-		self.Data.Model.ChildRemoved:Connect(function(descendant)
-			self.Data.ChildData[self.Data.Model] = self.Data.Model:GetChildren()
-		end)
-	end
-
-	for i,v in next, self.Data.LatchCFrames do
-		i.CFrame = self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(v)
 	end
 
 	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
 
 	local MeshModel = self.Data.Model.Model
 
-	if not self.Data.ChildData[MeshModel] then
-		self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
-		MeshModel.ChildAdded:Connect(function(descendant)
-			self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
-		end)
-		MeshModel.ChildRemoved:Connect(function(descendant)
-			self.Data.ChildData[MeshModel] = MeshModel:GetChildren()
-		end)
-	end
-
-	for i, v in next, self.Data.DescendantData[self.Data.Model] do
-		if v:IsA("Weld") then
-			v:Destroy()
-		end
-		if v:IsA("BasePart") then
-			v.CanCollide = false
-			v.Anchored = true
-		end
-	end
-
 	if self.Data.Type == "Cars" then
-		for i,v in next, self.Data.Wheels do
-			if not self.Data.ChildData[v.MeshPart] then
-				self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
-				v.MeshPart.ChildAdded:Connect(function(child)
-					self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
-				end)
-				v.MeshPart.ChildRemoved:Connect(function(child)
-					self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
-				end)
-			end
-			for index, value in next, self.Data.ChildData[v.MeshPart] do
-				if value:IsA("Decal") then
-					value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
-				end
-			end
-			v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
-		end
-		for i,v in next, self.Data.RealWheels do
-			if not self.Data.ChildData[i] then
-				self.Data.ChildData[i] = i:GetChildren()
-				i.ChildAdded:Connect(function(child)
-					self.Data.ChildData[i] = i:GetChildren()
-				end)
-				i.ChildRemoved:Connect(function(child)
-					self.Data.ChildData[i] = i:GetChildren()
-				end)
-			end
-			for index, value in next, self.Data.ChildData[i] do
-				if value:IsA("Decal") then
-					value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
-				end
-			end
-			i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
-		end
+		-- for i,v in next, self.Data.Wheels do
+		-- 	if not self.Data.ChildData[v.MeshPart] then
+		-- 		self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
+		-- 		v.MeshPart.ChildAdded:Connect(function(child)
+		-- 			self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
+		-- 		end)
+		-- 		v.MeshPart.ChildRemoved:Connect(function(child)
+		-- 			self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
+		-- 		end)
+		-- 	end
+		-- 	for index, value in next, self.Data.ChildData[v.MeshPart] do -- needs to be updated to run only on val change or new decal/rim
+		-- 		if value:IsA("Decal") then
+		-- 			value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
+		-- 		end
+		-- 	end
+		-- 	v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
+		-- end
+		-- for i,v in next, self.Data.RealWheels do--same here
+		-- 	if not self.Data.ChildData[i] then
+		-- 		self.Data.ChildData[i] = i:GetChildren()
+		-- 		i.ChildAdded:Connect(function(child)
+		-- 			self.Data.ChildData[i] = i:GetChildren()
+		-- 		end)
+		-- 		i.ChildRemoved:Connect(function(child)
+		-- 			self.Data.ChildData[i] = i:GetChildren()
+		-- 		end)
+		-- 	end
+		-- 	for index, value in next, self.Data.ChildData[i] do
+		-- 		if value:IsA("Decal") then
+		-- 			value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
+		-- 		end
+		-- 	end
+		-- 	i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
+		-- end
 		if self.Data.Model:FindFirstChild("Spoiler") and self.Data.Chassis:FindFirstChild("Spoiler") then
 			self.Data.Model.Spoiler.CFrame = CFrame.lookAt(self.Data.Model.Spoiler.Position, self.Data.Model.Spoiler.Position + self.Data.Chassis.Spoiler.CFrame.LookVector)
 		end
 		if self.Data.Chassis.Model:FindFirstChild("SteeringWheel") then
 			MeshModel.SteeringWheel.Orientation = Vector3.new(MeshModel.SteeringWheel.Orientation.X, MeshModel.SteeringWheel.Orientation.Y, self.Data.Chassis.Model.SteeringWheel.Orientation.Z)
 		end
-		for i, v in next, self.Data.ChildData[self.Data.Model] do
-			if string.find(v.Name, "Wheel") and v:IsA("Model") then
-				local Thrust = Importer.Functions.GetNearestThrust(self, self.Data.Chassis[v.Name])
-				local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
-				local WorldCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
-				Thrust.Position = HasPlayer and not self.Settings.SimulateWheels and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
-			end
-		end
-		for i,v in next, self.Data.ChildData[MeshModel] do
-			if v.Name == "Brakelights" then
-				v.Material = self.Data.Chassis.Model.Brakelights.Material
-			end
-			if v.Name == "Headlights" then
-				v.Material = self.Data.Chassis.Model.Headlights.Material
-			end
-			if v.Name == "Nitrous" then
-				v.Fire.Enabled = self.Data.Chassis.Model.Nitrous.Fire.Enabled
-				v.Smoke.Enabled = self.Data.Chassis.Model.Nitrous.Smoke.Enabled
-			end
-		end
-		for i, v in next, self.Data.ChildData[self.Data.Model] do
-			if string.find(v.Name, "Wheel") and v:IsA("Model") then
-				local RimCFrame, RelativeRim = table.pack(self.Data.Chassis[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
-				local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
+		for i, v in next, self.Data.ChildData[self.Data.Model.Preset] do
+			local Thrust = self.Data.Chassis.Preset[v.Name].Thrust
+			local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
+			local WorldCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
+			Thrust.Position = HasPlayer and not self.Settings.SimulateWheels and Vector3.new(WorldCF.X, ThrustCF.Position.Y - self.Data.Model.Preset[v.Name].Wheel.Size.Y/2, WorldCF.Z) or ThrustCF.Position
 
-				RimCFrame[1] = RelativeRim.X
-				RimCFrame[3] = RelativeRim.Z
-				WheelCFrame[1] = RelativeWheel.X
-				WheelCFrame[3] = RelativeWheel.Z
+			local RimCFrame, RelativeRim = table.pack(self.Data.Chassis.Preset[v.Name].Rim.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Rim)
+			local WheelCFrame, RelativeWheel = table.pack(self.Data.Chassis.Preset[v.Name].Wheel.CFrame:GetComponents()), self.Data.Model.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeWheels[v.Name].Wheel)
 
-				v.Rim.CFrame = CFrame.new(table.unpack(RimCFrame))
-				self.Data.Chassis[v.Name].Rim.Size = v.Rim.Size
-				v.Wheel.CFrame = CFrame.new(table.unpack(WheelCFrame))
-				self.Data.Chassis[v.Name].Wheel.Size = v.Wheel.Size
-			end
+			RimCFrame[1] = RelativeRim.X
+			RimCFrame[3] = RelativeRim.Z
+			WheelCFrame[1] = RelativeWheel.X
+			WheelCFrame[3] = RelativeWheel.Z
+
+			v.Rim.CFrame = CFrame.new(table.unpack(RimCFrame))
+			self.Data.Chassis.Preset[v.Name].Rim.Size = v.Rim.Size
+			v.Wheel.CFrame = CFrame.new(table.unpack(WheelCFrame))
+			self.Data.Chassis.Preset[v.Name].Wheel.Size = v.Wheel.Size
 		end
 	elseif self.Data.Type == "Helis" then
 		if self.Data.Model.Preset:FindFirstChild("TailRotor") and self.Data.Chassis.Preset:FindFirstChild("TailRotor") then
@@ -1068,32 +1049,32 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
-	if self.Data.Model.Preset:FindFirstChild("DoorRight") and self.Data.Chassis.Preset:FindFirstChild("DoorRight") then
+	-- if self.Data.Model.Preset:FindFirstChild("DoorRight") and self.Data.Chassis.Preset:FindFirstChild("DoorRight") then
 
-	end
-	if self.Data.Model.Preset:FindFirstChild("DoorLeft") and self.Data.Chassis.Preset:FindFirstChild("DoorLeft") then
+	-- end
+	-- if self.Data.Model.Preset:FindFirstChild("DoorLeft") and self.Data.Chassis.Preset:FindFirstChild("DoorLeft") then
 
-	end
+	-- end
 
-	if Packet and Packet.Model == self.Data.Chassis then
-		for i, v in next, self.VehiclePackets do
-			if not v.NewValue then
-				continue
-			end
-			local Indexs, NewIndex = string.split(v.Index, "."), Packet or {}
-			Indexs[1] = nil
-			for index, value in next, Indexs do
-				if index == #Indexs then
-					break
-				end
-				if not NewIndex[value] then
-					NewIndex[value] = {}
-				end
-				NewIndex = NewIndex[value]
-			end
-			NewIndex[Indexs[#Indexs]] = v.NewValue
-		end
-	end
+	-- if Packet and Packet.Model == self.Data.Chassis then
+	-- 	for i, v in next, self.VehiclePackets do
+	-- 		if not v.NewValue then
+	-- 			continue
+	-- 		end
+	-- 		local Indexs, NewIndex = string.split(v.Index, "."), Packet or {}
+	-- 		Indexs[1] = nil
+	-- 		for index, value in next, Indexs do
+	-- 			if index == #Indexs then
+	-- 				break
+	-- 			end
+	-- 			if not NewIndex[value] then
+	-- 				NewIndex[value] = {}
+	-- 			end
+	-- 			NewIndex = NewIndex[value]
+	-- 		end
+	-- 		NewIndex[Indexs[#Indexs]] = v.NewValue
+	-- 	end
+	-- end
 end
 
 Importer.Functions.CreateNewSave = function(Data)
@@ -3209,7 +3190,7 @@ CreateUi.Functions.CreateConfigPacketsSection = function(Channel) -- Config Pack
 
 	CreateUi.Functions.CreatePacketListDropDown(Section)
 	CreateUi.Functions.CreateSelectedPacketType(Section)
-	CreateUi.Functions.CreateNewPacketValue(Section)
+	-- CreateUi.Functions.CreateNewPacketValue(Section)
 
 	return Section
 end
