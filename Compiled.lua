@@ -566,6 +566,11 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			RealWheels = {},
 			RelativeWheels = {},
 			RelativeThrust = {},
+			PropertyChanges = {
+				Nitrous = {},
+				Headlights = {},
+				Brakelights = {}
+			},
 			Connections = {
 				Spoiler = {}
 			},
@@ -770,30 +775,45 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			end
 		end
 
+		for i,v in next, self.Data.Model.Model:GetChildren() do
+			if v.Name == "Nitrous" then
+				table.insert(self.Data.PropertyChanges.Nitrous, v)
+			end
+			if v.Name == "Headlights" then
+				table.insert(self.Data.PropertyChanges.Headlights, v)
+			end
+			if v.Name == "Brakelights" then
+				table.insert(self.Data.PropertyChanges.Brakelights, v)
+			end
+		end
+
 		for i,v in next, self.Data.Chassis.Model:GetChildren() do
 			if v.Name == "Nitrous" then
 				v.Fire.Transparency = NumberSequence.new(1)
 				v.Smoke.Transparency = NumberSequence.new(1)
 				v.Fire:GetPropertyChangedSignal("Enabled"):Connect(function()
-					-- v.Fire.Enabled = self.Data.Chassis.Model.Nitrous.Fire.Enabled
+					for _, value in next, self.Data.PropertyChanges.Nitrous do
+						value.Fire.Enabled = v.Fire.Enabled
+					end
 				end)
 				v.Smoke:GetPropertyChangedSignal("Enabled"):Connect(function()
-					-- v.Smoke.Enabled = self.Data.Chassis.Model.Nitrous.Smoke.Enabled
+					for _, value in next, self.Data.PropertyChanges.Nitrous do
+						value.Smoke.Enabled = v.Smoke.Enabled
+					end
 				end)
 			end
 			if v.Name == "Headlights" then
 				v:GetPropertyChangedSignal("Material"):Connect(function()
-					-- v.Material = self.Data.Chassis.Model.Headlights.Material
+					for _, value in next, self.Data.PropertyChanges.Headlights do
+						value.Material = self.Data.Chassis.Model.Headlights.Material
+					end
 				end)
 			end
 			if v.Name == "Brakelights" then
 				v:GetPropertyChangedSignal("Material"):Connect(function()
-					-- v.Material = self.Data.Chassis.Model.Brakelights.Material
-				end)
-			end
-			if v.Name == "Headlights" then
-				v:GetPropertyChangedSignal("Material"):Connect(function()
-					-- v.Material = self.Data.Chassis.Model.Headlights.Material
+					for _, value in next, self.Data.PropertyChanges.Brakelights do
+						value.Material = self.Data.Chassis.Model.Brakelights.Material
+					end
 				end)
 			end
 		end
@@ -888,7 +908,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 				local Weld = Instance.new("Weld", v)
 				Weld.Part0 = self.Data.Model.PrimaryPart
 				Weld.Part1 = v
-				Weld.C1 = self.Data.LatchCFrames[v]
+				Weld.C1 = self.Data.LatchCFrames[v]:Inverse()
 			end
 		end
 	end
@@ -978,40 +998,40 @@ Importer.Data.ImportPacket.Update = function(self)
 	local MeshModel = self.Data.Model.Model
 
 	if self.Data.Type == "Cars" then
-		-- for i,v in next, self.Data.Wheels do
-		-- 	if not self.Data.ChildData[v.MeshPart] then
-		-- 		self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
-		-- 		v.MeshPart.ChildAdded:Connect(function(child)
-		-- 			self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
-		-- 		end)
-		-- 		v.MeshPart.ChildRemoved:Connect(function(child)
-		-- 			self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
-		-- 		end)
-		-- 	end
-		-- 	for index, value in next, self.Data.ChildData[v.MeshPart] do -- needs to be updated to run only on val change or new decal/rim
-		-- 		if value:IsA("Decal") then
-		-- 			value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
-		-- 		end
-		-- 	end
-		-- 	v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
-		-- end
-		-- for i,v in next, self.Data.RealWheels do--same here
-		-- 	if not self.Data.ChildData[i] then
-		-- 		self.Data.ChildData[i] = i:GetChildren()
-		-- 		i.ChildAdded:Connect(function(child)
-		-- 			self.Data.ChildData[i] = i:GetChildren()
-		-- 		end)
-		-- 		i.ChildRemoved:Connect(function(child)
-		-- 			self.Data.ChildData[i] = i:GetChildren()
-		-- 		end)
-		-- 	end
-		-- 	for index, value in next, self.Data.ChildData[i] do
-		-- 		if value:IsA("Decal") then
-		-- 			value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
-		-- 		end
-		-- 	end
-		-- 	i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
-		-- end
+		for i,v in next, self.Data.Wheels do
+			if not self.Data.ChildData[v.MeshPart] then
+				self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren() --cba to fix this rn tbh
+				v.MeshPart.ChildAdded:Connect(function(child)
+					self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
+				end)
+				v.MeshPart.ChildRemoved:Connect(function(child)
+					self.Data.ChildData[v.MeshPart] = v.MeshPart:GetChildren()
+				end)
+			end
+			for index, value in next, self.Data.ChildData[v.MeshPart] do
+				if value:IsA("Decal") then
+					value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
+				end
+			end
+			v.MeshPart.Transparency = HasPlayer and not self.Settings.SimulateWheels and 1 or 0
+		end
+		for i,v in next, self.Data.RealWheels do
+			if not self.Data.ChildData[i] then
+				self.Data.ChildData[i] = i:GetChildren()
+				i.ChildAdded:Connect(function(child)
+					self.Data.ChildData[i] = i:GetChildren()
+				end)
+				i.ChildRemoved:Connect(function(child)
+					self.Data.ChildData[i] = i:GetChildren()
+				end)
+			end
+			for index, value in next, self.Data.ChildData[i] do
+				if value:IsA("Decal") then
+					value.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
+				end
+			end
+			i.Transparency = HasPlayer and not self.Settings.SimulateWheels and 0 or 1
+		end
 		if self.Data.Model:FindFirstChild("Spoiler") and self.Data.Chassis:FindFirstChild("Spoiler") then
 			self.Data.Model.Spoiler.CFrame = CFrame.lookAt(self.Data.Model.Spoiler.Position, self.Data.Model.Spoiler.Position + self.Data.Chassis.Spoiler.CFrame.LookVector)
 		end
@@ -1056,25 +1076,26 @@ Importer.Data.ImportPacket.Update = function(self)
 
 	-- end
 
-	-- if Packet and Packet.Model == self.Data.Chassis then
-	-- 	for i, v in next, self.VehiclePackets do
-	-- 		if not v.NewValue then
-	-- 			continue
-	-- 		end
-	-- 		local Indexs, NewIndex = string.split(v.Index, "."), Packet or {}
-	-- 		Indexs[1] = nil
-	-- 		for index, value in next, Indexs do
-	-- 			if index == #Indexs then
-	-- 				break
-	-- 			end
-	-- 			if not NewIndex[value] then
-	-- 				NewIndex[value] = {}
-	-- 			end
-	-- 			NewIndex = NewIndex[value]
-	-- 		end
-	-- 		NewIndex[Indexs[#Indexs]] = v.NewValue
-	-- 	end
-	-- end
+	if Packet and Packet.Model == self.Data.Chassis then
+		for i, v in next, self.VehiclePackets do
+			if not v.NewValue then
+				continue
+			end
+			local Indexs, NewIndex = string.split(v.Index, "."), Packet or {}
+			Indexs[1] = nil
+			for index, value in next, Indexs do
+				if index == #Indexs then
+					break
+				end
+				if not NewIndex[value] then
+					NewIndex[value] = {}
+				end
+				NewIndex = NewIndex[value]
+			end
+			print(Indexs[#Indexs], v.NewValue)
+			NewIndex[Indexs[#Indexs]] = v.NewValue
+		end
+	end
 end
 
 Importer.Functions.CreateNewSave = function(Data)
@@ -3190,7 +3211,7 @@ CreateUi.Functions.CreateConfigPacketsSection = function(Channel) -- Config Pack
 
 	CreateUi.Functions.CreatePacketListDropDown(Section)
 	CreateUi.Functions.CreateSelectedPacketType(Section)
-	-- CreateUi.Functions.CreateNewPacketValue(Section)
+	CreateUi.Functions.CreateNewPacketValue(Section)
 
 	return Section
 end
