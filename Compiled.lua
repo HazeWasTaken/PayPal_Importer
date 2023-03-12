@@ -903,7 +903,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			v:Destroy()
 		end
 		if v:IsA("BasePart") then
-			v.Anchored = false
+			v.Anchored = v == self.Data.Model.PrimaryPart
 			if v ~= self.Data.Model.PrimaryPart and not table.find(self.Data.Calculated, v) then
 				self.Data.LatchCFrames[v] = self.Data.Model.PrimaryPart.CFrame:ToObjectSpace(v.CFrame)
 				local Weld = Instance.new("Weld", v)
@@ -952,7 +952,7 @@ Importer.Data.ImportPacket.UpdateACW = function(self)
 	for i, v in next, self.Data.DescendantData[self.Data.Model] do
 		if v:IsA("BasePart") then
 			v.CanCollide = false
-			v.Anchored = false
+			v.Anchored = v == self.Data.Model.PrimaryPart
 		end
 	end
 end
