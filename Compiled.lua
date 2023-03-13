@@ -72,7 +72,7 @@ end
 
 VehicleChecks.Functions.RunCheck = function(Data)
 	local Success, Response = pcall(function()
-		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. Data)[1]
+		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. string.split(Data, "\\")[4])[1]
 	end)
 
 	local Type = string.split(Data, "\\")[3]
@@ -545,7 +545,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 	end
 
 	local Type = string.split(Data.Data, "\\")[3]
-
+	print(Type)
 	local Packet = {
 		Settings = {
 			Name = Data.Name,
@@ -626,7 +626,7 @@ Importer.Data.ImportPacket.UpdateWheelSimulation = function(self, SimulateWheels
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
-    local Model = game:GetObjects(getcustomasset and getcustomasset(self.Settings.Data) or "rbxassetid://" .. self.Settings.Data)[1]
+    local Model = game:GetObjects(getcustomasset and getcustomasset(self.Settings.Data) or "rbxassetid://" .. string.split(self.Settings.Data, "\\")[4])[1]
 	Model.PrimaryPart = Model.Engine
     return Model
 end
@@ -3365,18 +3365,18 @@ CreateUi.Functions.CreateConfigListSection = function(Channel) -- Config List Se
 end
 
 CreateUi.Functions.CreateModelLoad = function(Category, Section) -- Model Load
+	local Type = "Cars"
 	local Check = function(Data)
-		local Output, Offset = VehicleChecks.Functions.RunCheck(Data)
+		local Output, Offset = VehicleChecks.Functions.RunCheck(getcustomasset and Data or string.rep("\\", 2) .. Type .. "\\" .. Data)
 
 		local Notif = Category.CreateNotif("Model Check", Offset, Output, {
 			(Offset == Vector2.new(0, 900) and {
 				Text = "Continue",
 				Close = true,
 				Callback = function()
-					table.foreach(string.split(Data, [[\]]), print)
 					local Packet = Importer.Functions.CreateNewSave({
 						Name = getcustomasset and string.gsub(string.split(Data, [[\]])[4], ".rbxm", "") or MarketplaceService:GetProductInfo(Data).Name,
-						Data = Data,
+						Data = getcustomasset and Data or string.rep("\\", 2) .. Type .. "\\" .. Data,
 						Height = 0,
 						SimulateWheels = false
 					})
@@ -3390,7 +3390,11 @@ CreateUi.Functions.CreateModelLoad = function(Category, Section) -- Model Load
 			}
 		})
 	end
-	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", Text = "", Options = {}, UpdateData = ReadWrite.Functions.ReadVehicles}) or Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
+	local Dropdown = getcustomasset and Section.CreateDropdown(Check, {Name = "Model File", Text = "", Options = {}, UpdateData = ReadWrite.Functions.ReadVehicles}) or Section.CreateDropdown(function(Data)
+		Type = Data
+	end, {Name = "Model Type", Text = "Car", Options = {
+		{Name = "Car", Data = "Cars"}, {Name = "Heli", Data = "Helis"}
+	}}) and Section.CreateTextBox(Check, {Name = "Model Id", Text = "Id", NumOnly = true})
 
 	coroutine.wrap(function()
 		while true do

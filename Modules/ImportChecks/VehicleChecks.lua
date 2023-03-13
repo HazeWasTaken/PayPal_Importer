@@ -56,7 +56,7 @@ end
 
 VehicleChecks.Functions.RunCheck = function(Data)
 	local Success, Response = pcall(function()
-		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. Data)[1]
+		return game:GetObjects(getcustomasset and getcustomasset(Data) or "rbxassetid://" .. string.split(Data, "\\")[4])[1]
 	end)
 
 	local Type = string.split(Data, "\\")[3]

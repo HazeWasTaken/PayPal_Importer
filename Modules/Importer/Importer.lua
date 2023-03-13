@@ -130,7 +130,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 	end
 
 	local Type = string.split(Data.Data, "\\")[3]
-
+	print(Type)
 	local Packet = {
 		Settings = {
 			Name = Data.Name,
@@ -211,7 +211,7 @@ Importer.Data.ImportPacket.UpdateWheelSimulation = function(self, SimulateWheels
 end
 
 Importer.Data.ImportPacket.LoadModel = function(self)
-    local Model = game:GetObjects(getcustomasset and getcustomasset(self.Settings.Data) or "rbxassetid://" .. self.Settings.Data)[1]
+    local Model = game:GetObjects(getcustomasset and getcustomasset(self.Settings.Data) or "rbxassetid://" .. string.split(self.Settings.Data, "\\")[4])[1]
 	Model.PrimaryPart = Model.Engine
     return Model
 end
