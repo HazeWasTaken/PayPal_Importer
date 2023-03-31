@@ -158,7 +158,8 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 				Brakelights = {}
 			},
 			Connections = {
-				Spoiler = {}
+				Spoiler = {},
+				Misc = {}
 			},
 			DescendantData = {},
 			ChildData = {},
@@ -175,7 +176,8 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 			DescendantData = {},
 			ChildData = {},
 			Connections = {
-				Discs = {}
+				Discs = {},
+				Misc = {}
 			},
 			SeatCF = nil
 		}
@@ -406,6 +408,9 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 
 		self.Data.Destroy = function()
 			self.Data.Update:Disconnect()
+			for i,v in next, self.Data.Connections.Misc do
+				v:Disconnect()
+			end
 			RunService.Heartbeat:Wait()
 			if self.Data.Chassis.Parent then
 				self.Data.Chassis:SetAttribute("Key", nil)
@@ -470,6 +475,9 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 					i.Transparency = v
 				end
 				self.Data.Chassis.Seat.Weld.C0 = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.SeatCF):Inverse() * self.Data.Chassis.PrimaryPart.CFrame
+			end
+			for i,v in next, self.Data.Connections.Misc do
+				v:Disconnect()
 			end
 			for i,v in next, self.Data.Connections.Discs do
 				v:Disconnect()
@@ -560,23 +568,23 @@ Importer.Data.ImportPacket.Update = function(self)
 
 	if not self.Data.DescendantData[self.Data.Chassis] then
 		self:UpdateTransparency()
-		self.Data.Chassis.DescendantAdded:Connect(function(descendant)
+		table.insert(self.Data.Connections.Misc, self.Data.Chassis.DescendantAdded:Connect(function(descendant)
 			self:UpdateTransparency()
-		end)
+		end))
 	end
 
 	if not self.Data.DescendantData[self.Data.Model] then
 		self:UpdateACW()
-		self.Data.Model.DescendantAdded:Connect(function(descendant)
+		table.insert(self.Data.Connections.Misc, self.Data.Model.DescendantAdded:Connect(function(descendant)
 			self:UpdateACW()
-		end)
+		end))
 	end
 
 	if not self.Data.ChildData[self.Data.Model] then
 		self:UpdateWheelParts()
-		self.Data.Model.ChildAdded:Connect(function(descendant)
+		table.insert(self.Data.Connections.Misc, self.Data.Model.ChildAdded:Connect(function(descendant)
 			self:UpdateWheelParts()
-		end)
+		end))
 	end
 
 	self.Data.Chassis.Seat.Weld.C0 = self.Data.Model.Seat.CFrame:Inverse() * self.Data.Chassis.PrimaryPart.CFrame
@@ -655,12 +663,12 @@ Importer.Data.ImportPacket.Update = function(self)
 		end
 	end
 
-	-- if self.Data.Model.Preset:FindFirstChild("DoorRight") and self.Data.Chassis.Preset:FindFirstChild("DoorRight") then
+	if self.Data.Model.Preset:FindFirstChild("DoorRight") and self.Data.Chassis.Preset:FindFirstChild("DoorRight") then
 
-	-- end
-	-- if self.Data.Model.Preset:FindFirstChild("DoorLeft") and self.Data.Chassis.Preset:FindFirstChild("DoorLeft") then
+	end
+	if self.Data.Model.Preset:FindFirstChild("DoorLeft") and self.Data.Chassis.Preset:FindFirstChild("DoorLeft") then
 
-	-- end
+	end
 
 	if Packet and Packet.Model == self.Data.Chassis then
 		for i, v in next, self.VehiclePackets do
