@@ -1,6 +1,6 @@
 local Packet = {
 	Data = {
-        Vehicle = require(ReplicatedStorage.Game.Vehicle),
+        Vehicle = require(ReplicatedStorage.Vehicle.VehicleUtils),
         PrevData = {}
     },
 	Functions = {}

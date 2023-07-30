@@ -419,7 +419,7 @@ local Customization = import("Modules/Importer/Customization.lua")
 local Importer = {
 	Data = {
 		AlexChassis = require(ReplicatedStorage.Module.AlexChassis),
-        Vehicle = require(ReplicatedStorage.Game.Vehicle),
+        Vehicle = require(ReplicatedStorage.Vehicle.VehicleUtils),
         ImportPacket = {},
 		Packets = {}
     },
@@ -1136,7 +1136,7 @@ Packet = {
 Packet = function()
 local Packet = {
 	Data = {
-        Vehicle = require(ReplicatedStorage.Game.Vehicle),
+        Vehicle = require(ReplicatedStorage.Vehicle.VehicleUtils),
         PrevData = {}
     },
 	Functions = {}
