@@ -528,14 +528,20 @@ Library.Functions.CreateUi = function(Name)
                     Content.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 4)
                 end)
 
-                RunService.Heartbeat:Connect(function()
-                    for i,v in next, Inputs do
-                        if string.find(v.Name:lower(), Input1.Text:lower()) then
-                            v.Visible = true
-                        else
-                            v.Visible = false
+                local Connection
+                Input1.Focused:Connect(function()
+                    Connection = RunService.Heartbeat:Connect(function()
+                        for i,v in next, Inputs do
+                            if string.find(v.Name:lower(), Input1.Text:lower()) then
+                                v.Visible = true
+                            else
+                                v.Visible = false
+                            end
                         end
-                    end
+                    end)
+                end)
+                Input1.FocusLost:Connect(function()
+                    Connection:Disconnect()
                 end)
 
                 Channel.MouseButton1Down:Connect(function(x, y)
@@ -1136,14 +1142,20 @@ Library.Functions.CreateUi = function(Name)
                         DropdownLibrary.Enabled = false
                         DropdownLibrary.Tweening = false
 
-                        RunService.Heartbeat:Connect(function()
-                            for i,v in next, Options_Instances do
-                                if string.find(v.Name:lower(), Input.Text:lower()) then
-                                    v.Visible = true
-                                else
-                                    v.Visible = false
+                        local Connection
+                        Input.Focused:Connect(function()
+                            Connection = RunService.Heartbeat:Connect(function()
+                                for i,v in next, Options_Instances do
+                                    if string.find(v.Name:lower(), Input.Text:lower()) then
+                                        v.Visible = true
+                                    else
+                                        v.Visible = false
+                                    end
                                 end
-                            end
+                            end)
+                        end)
+                        Input.FocusLost:Connect(function()
+                            Connection:Disconnect()
                         end)
 
                         RunService.Heartbeat:Connect(function()

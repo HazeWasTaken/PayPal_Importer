@@ -545,7 +545,7 @@ Importer.Data.ImportPacket.NewPacket = function(self, Data)
 	end
 
 	local Type = string.split(Data.Data, "\\")[3]
-	print(Type)
+
 	local Packet = {
 		Settings = {
 			Name = Data.Name,
@@ -713,11 +713,14 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 		self.Data.Model.PrimaryPart.Position = WheelDiff.Unit * (WheelDiff.Magnitude/2) + self.Data.Model.Preset.WheelBackRight.Wheel.Position
 
 		local CreateRim = function(v)
-			local NewRim = self.Data.Chassis.Preset[v.Name].Rim:Clone()
-			NewRim.Size = Vector3.new(v.Wheel.Size.X, v.Rim.Size.Y, v.Rim.Size.Z)
-			NewRim.CFrame = v.Wheel.CFrame:ToWorldSpace(self.Data.Chassis.Preset[v.Name].Wheel.CFrame:ToObjectSpace(self.Data.Chassis.Preset[v.Name].Rim.CFrame))
-			v.Rim:Destroy()
-			NewRim.Parent = v
+			local NewRim = v.Rim
+			if not self.Data.Model:FindFirstChild("NoCustomization") or not self.Data.Model.NoCustomization.Value then
+				NewRim = self.Data.Chassis.Preset[v.Name].Rim:Clone()
+				NewRim.Size = Vector3.new(v.Wheel.Size.X, v.Rim.Size.Y, v.Rim.Size.Z)
+				NewRim.CFrame = v.Wheel.CFrame:ToWorldSpace(self.Data.Chassis.Preset[v.Name].Wheel.CFrame:ToObjectSpace(self.Data.Chassis.Preset[v.Name].Rim.CFrame))
+				v.Rim:Destroy()
+				NewRim.Parent = v
+			end
 			self.Data.Wheels[v.Name .. "Rim"] = {
 				Size = NewRim.Size,
 				MeshPart = NewRim
@@ -727,11 +730,14 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 		end
 
 		local CreateWheel = function(v)
-			local NewWheel = self.Data.Chassis.Preset[v.Name].Wheel:Clone()
-			NewWheel.Size = v.Wheel.Size
-			NewWheel.CFrame = v.Rim.CFrame:ToWorldSpace(self.Data.Chassis.Preset[v.Name].Rim.CFrame:ToObjectSpace(self.Data.Chassis.Preset[v.Name].Wheel.CFrame))
-			v.Wheel:Destroy()
-			NewWheel.Parent = v
+			local NewWheel = v.Wheel
+			if not self.Data.Model:FindFirstChild("NoCustomization") or not self.Data.Model.NoCustomization.Value then
+				NewWheel = self.Data.Chassis.Preset[v.Name].Wheel:Clone()
+				NewWheel.Size = v.Wheel.Size
+				NewWheel.CFrame = v.Rim.CFrame:ToWorldSpace(self.Data.Chassis.Preset[v.Name].Rim.CFrame:ToObjectSpace(self.Data.Chassis.Preset[v.Name].Wheel.CFrame))
+				v.Wheel:Destroy()
+				NewWheel.Parent = v
+			end
 			self.Data.Wheels[v.Name .. "Wheel"] = {
 				Size = NewWheel.Size,
 				MeshPart = NewWheel
@@ -769,12 +775,14 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 
 				local Thrust, Connection = self.Data.Chassis.Preset[v.Name].Thrust
 				self.Data.RelativeThrust[Thrust] = self.Data.Chassis.PrimaryPart.CFrame:ToObjectSpace(Thrust.CFrame)
-				Connection = self.Data.Chassis.Preset[v.Name].DescendantAdded:Connect(function(descendant)
-					if not self.Data.Model.Parent then
-						return Connection:Disconnect()
-					end
-					UpdateRim(v)
-				end)
+				if not self.Data.Model:FindFirstChild("NoCustomization") or not self.Data.Model.NoCustomization.Value then
+					Connection = self.Data.Chassis.Preset[v.Name].DescendantAdded:Connect(function(descendant)
+						if not self.Data.Model.Parent then
+							return Connection:Disconnect()
+						end
+						UpdateRim(v)
+					end)
+				end
 			end
 		end
 
@@ -922,7 +930,9 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 		end
 	end
 
-	Customization.Functions.ConnectModel(self)
+	if not self.Data.Model:FindFirstChild("NoCustomization") or not self.Data.Model.NoCustomization.Value then
+		Customization.Functions.ConnectModel(self)
+	end
 
 	self.Data.Model.Parent = Workspace
 
@@ -1101,7 +1111,7 @@ Importer.Data.ImportPacket.Update = function(self)
 				end
 				NewIndex = NewIndex[value]
 			end
-			print(Indexs[#Indexs], v.NewValue)
+
 			NewIndex[Indexs[#Indexs]] = v.NewValue
 		end
 	end
@@ -1794,14 +1804,20 @@ Library.Functions.CreateUi = function(Name)
                     Content.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 4)
                 end)
 
-                RunService.Heartbeat:Connect(function()
-                    for i,v in next, Inputs do
-                        if string.find(v.Name:lower(), Input1.Text:lower()) then
-                            v.Visible = true
-                        else
-                            v.Visible = false
+                local Connection
+                Input1.Focused:Connect(function()
+                    Connection = RunService.Heartbeat:Connect(function()
+                        for i,v in next, Inputs do
+                            if string.find(v.Name:lower(), Input1.Text:lower()) then
+                                v.Visible = true
+                            else
+                                v.Visible = false
+                            end
                         end
-                    end
+                    end)
+                end)
+                Input1.FocusLost:Connect(function()
+                    Connection:Disconnect()
                 end)
 
                 Channel.MouseButton1Down:Connect(function(x, y)
@@ -2402,14 +2418,20 @@ Library.Functions.CreateUi = function(Name)
                         DropdownLibrary.Enabled = false
                         DropdownLibrary.Tweening = false
 
-                        RunService.Heartbeat:Connect(function()
-                            for i,v in next, Options_Instances do
-                                if string.find(v.Name:lower(), Input.Text:lower()) then
-                                    v.Visible = true
-                                else
-                                    v.Visible = false
+                        local Connection
+                        Input.Focused:Connect(function()
+                            Connection = RunService.Heartbeat:Connect(function()
+                                for i,v in next, Options_Instances do
+                                    if string.find(v.Name:lower(), Input.Text:lower()) then
+                                        v.Visible = true
+                                    else
+                                        v.Visible = false
+                                    end
                                 end
-                            end
+                            end)
+                        end)
+                        Input.FocusLost:Connect(function()
+                            Connection:Disconnect()
                         end)
 
                         RunService.Heartbeat:Connect(function()
