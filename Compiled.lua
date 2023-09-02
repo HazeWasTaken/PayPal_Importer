@@ -765,6 +765,22 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 			NewRim.Parent = v
 		end
 
+		local UpdateWheel = function(v)
+			self.Data.Chassis.Preset[v.Name].TireMesh.Size = self.Data.Wheels[v.Name .. "Wheel"].Size
+			self.Data.RealWheels[self.Data.Chassis.Preset[v.Name].TireMesh] = self.Data.Chassis.Preset[v.Name].TireMesh.Transparency
+			local NewWheel = self.Data.Chassis.Preset[v.Name].TireMesh:Clone()
+			v.TireMesh:Destroy()
+			NewWheel.CanCollide = false
+			for index, value in next, NewWheel:GetChildren() do
+				if value:IsA("Weld") then
+					value:Destroy()
+				end
+			end
+			table.insert(self.Data.Calculated, NewWheel)
+			self.Data.Wheels[v.Name .. "Rim"].MeshPart = NewWheel
+			NewWheel.Parent = v
+		end
+
 		for i, v in next, self.Data.Model.Preset:GetChildren() do
 			if string.find(v.Name, "Wheel") and v:IsA("Model") then
 				CreateRim(v)
@@ -782,7 +798,11 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 						if not self.Data.Model.Parent then
 							return Connection:Disconnect()
 						end
-						UpdateRim(v)
+						if descendant.Name == "Rim" then
+							UpdateRim(v)
+						elseif descendant.Name == "TireMesh" then
+							UpdateWheel(v)
+						end
 					end)
 				end
 			end
