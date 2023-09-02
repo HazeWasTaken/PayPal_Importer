@@ -1306,6 +1306,14 @@ Library.Functions.CreateUi = function(Name)
                             Callback = UpdateCallback or Callback
                         end
 
+                        DropdownLibrary.CallUpdateData = function()
+                            if Data.UpdateData then
+                                local New_Data = Data.UpdateData()
+
+                                DropdownLibrary.Update(nil, {Options = New_Data})
+                            end
+                        end
+
                         DropdownLibrary.Destroy = function()
                             table.remove(Inputs, table.find(Inputs, Dropdown))
                             Dropdown:Destroy()
@@ -1336,8 +1344,8 @@ Library.Functions.CreateUi = function(Name)
                         Input.TextSize = 11
                         Input.TextWrap = true
                         Input.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        Input.Text = ""
-                        Input.PlaceholderText = Data.Text
+                        Input.Text = Data.Text
+                        Input.PlaceholderText = Data.PlaceHolder or ""
                         Input.Font = Enum.Font.Gotham
                         Input.TextXAlignment = Enum.TextXAlignment.Left
                         Input.ClearTextOnFocus = false
@@ -1484,7 +1492,7 @@ Library.Functions.CreateUi = function(Name)
                         SliderName.TextXAlignment = Enum.TextXAlignment.Left
                         SliderName.Parent = Slider
 
-                        local SliderValue = Instance.new("TextLabel")
+                        local SliderValue = Instance.new("TextBox")
                         SliderValue.Name = "SliderValue"
                         SliderValue.Size = UDim2.new(0, 96, 0, 26)
                         SliderValue.BackgroundTransparency = 1
@@ -1525,6 +1533,13 @@ Library.Functions.CreateUi = function(Name)
                         local MouseDown, Floor, EndInput = false, function(...)
                             return Data.Precise and tonumber(string.format("%.2f", ...)) or math.floor(...)
                         end
+
+                        SliderValue.FocusLost:Connect(function()
+                            Data.Current = tonumber(SliderValue.Text)
+                            Callback(Data.Current)
+                            SliderValue.Text = tostring(Data.Current) .. "/" .. tostring(Data.Max)
+                            Slide.Size = UDim2.new((Data.Current - math.abs(Data.Min))/(Data.Max - math.abs(Data.Min)), 0, 0, 4)
+                        end)
 
                         Slider.MouseButton1Down:Connect(function(x, y)
                             MouseDown = true
@@ -1693,7 +1708,7 @@ Library.Functions.CreateUi = function(Name)
                             Data.Connection:Disconnect()
                         end)
                         
-                        UserInputService.InputBegan:Connect(function(UserInput)
+                        local Connection = UserInputService.InputBegan:Connect(function(UserInput)
                             if UserInput.KeyCode == Data.KeyBind then
                                 Callback()
                                 task.wait(1)
@@ -1715,6 +1730,12 @@ Library.Functions.CreateUi = function(Name)
                             TextboxName.Text = Data.Name
                         end
 
+                        KeyBindLibrary.Destroy = function()
+                            table.remove(Inputs, table.find(Inputs, Textbox))
+                            Connection:Disconnect()
+                            Textbox:Destroy()
+                        end
+
                         return KeyBindLibrary
                     end
 
@@ -1724,7 +1745,7 @@ Library.Functions.CreateUi = function(Name)
                 return SectionLibrary
             end
 
-            ChannelLibrary.CreateNotif = function(Name, ImageRectOffset, TextDescription, Options)
+            ChannelLibrary.CreateNotif = function(Name, ImageRectOffset, TextDescription, Options, Size)
                 local Notif = Instance.new("Frame")
                 Notif.Name = "Notif"
                 Notif.Size = UDim2.new(1, 0, 1, 0)
@@ -1737,7 +1758,7 @@ Library.Functions.CreateUi = function(Name)
 
                 local Inner = Instance.new("Frame")
                 Inner.Name = "Inner"
-                Inner.Size = UDim2.new(0, 380, 0, 242)
+                Inner.Size = Size or UDim2.new(0, 380, 0, 242)
                 Inner.Position = UDim2.new(0.1678322, 0, 0.1355422, 0)
                 Inner.BackgroundColor3 = Color3.fromRGB(17, 17, 17)
                 Inner.Parent = Notif
@@ -1761,7 +1782,7 @@ Library.Functions.CreateUi = function(Name)
 
                 local Description = Instance.new("TextLabel")
                 Description.Name = "Description"
-                Description.Size = UDim2.new(0, 342, 0, 87)
+                Description.Size = Size or UDim2.new(0, 342, 0, 87)
                 Description.BackgroundTransparency = 1
                 Description.Position = UDim2.new(0.0484174, 0, 0.455591, 0)
                 Description.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
