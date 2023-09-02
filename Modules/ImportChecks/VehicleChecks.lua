@@ -4,19 +4,19 @@ local VehicleChecks = {
 			Cars = {
 				Preset = {
 					WheelFrontLeft = {
-						Wheel = {},
+						TireMesh = {},
 						Rim = {}
 					},
 					WheelFrontRight = {
-						Wheel = {},
+						TireMesh = {},
 						Rim = {}
 					},
 					WheelBackLeft = {
-						Wheel = {},
+						TireMesh = {},
 						Rim = {}
 					},
 					WheelBackRight = {
-						Wheel = {},
+						TireMesh = {},
 						Rim = {},
 					}
 				},
