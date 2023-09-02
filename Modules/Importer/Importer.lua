@@ -451,7 +451,7 @@ Importer.Data.ImportPacket.InitPacket = function(self)
 						local ThrustCF = self.Data.Chassis.PrimaryPart.CFrame:ToWorldSpace(self.Data.RelativeThrust[Thrust])
 						Thrust.Position = ThrustCF.Position
 						self.Data.Chassis.Preset[v.Name].Rim.Size = self.Data.WheelSize.Rim
-						self.Data.Chassis.Preset[v.Name].Wheel.Size = self.Data.WheelSize.Wheel
+						self.Data.Chassis.Preset[v.Name].TireMesh.Size = self.Data.WheelSize.Wheel
 					end
 				end
 				for i,v in next, self.Data.ChassisTransparency do
